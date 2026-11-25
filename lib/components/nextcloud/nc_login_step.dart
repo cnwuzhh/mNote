@@ -77,40 +77,50 @@ class NcLoginStep extends HookWidget {
     final screenSize = MediaQuery.sizeOf(context);
     final shouldUseTwoColumns = _shouldUseTwoColumns(screenSize);
     if (shouldUseTwoColumns) {
-      return Center(
-        child: SafeArea(
-          minimum: const .all(64),
-          child: SizedBox(
-            width: _width * 3,
-            child: Row(
-              mainAxisAlignment: .center,
-              crossAxisAlignment: .start,
-              spacing: 64,
-              children: [
-                Expanded(
-                  child: _Header(shouldUseTwoColumns: shouldUseTwoColumns),
-                ),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: .min,
-                    spacing: 48,
+      // Scrollable so the soft keyboard (which shrinks the body via the
+      // Scaffold) does not cause a bottom overflow in landscape on tablets.
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          keyboardDismissBehavior: .onDrag,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: SafeArea(
+                minimum: const .all(64),
+                child: SizedBox(
+                  width: _width * 3,
+                  child: Row(
+                    mainAxisAlignment: .center,
+                    crossAxisAlignment: .start,
+                    spacing: 64,
                     children: [
-                      _LoginWithSaber(
-                        login: () => loginFlow.value = _createLoginFlow(
-                          context,
-                          NextcloudClientExtension.defaultNextcloudUri,
+                      Expanded(
+                        child: _Header(
+                          shouldUseTwoColumns: shouldUseTwoColumns,
                         ),
                       ),
-                      _LoginWithNextcloud(
-                        login: (url) => loginFlow.value = _createLoginFlow(
-                          context,
-                          Uri.parse(url),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: .min,
+                          spacing: 48,
+                          children: [
+                            _LoginWithSaber(
+                              login: () => loginFlow.value = _createLoginFlow(
+                                context,
+                                NextcloudClientExtension.defaultNextcloudUri,
+                              ),
+                            ),
+                            _LoginWithNextcloud(
+                              login: (url) => loginFlow.value =
+                                  _createLoginFlow(context, Uri.parse(url)),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
