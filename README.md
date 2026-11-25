@@ -1,3 +1,18 @@
+# mNote
+
+> **项目目标：做一个与 [MarginNote](https://www.marginnote.com/) 兼容的笔记 / 阅读学习 App。**
+>
+> mNote 基于开源手写笔记应用 [Saber](https://github.com/saber-notes/saber) 二次开发（Flutter），计划在其手写能力之上逐步实现：
+>
+> - PDF / EPUB 阅读与批注（高亮、摘录、手写批注）
+> - 摘录卡片与脑图（Mind Map）组织学习内容
+> - 兼容 MarginNote 的笔记数据格式（导入 / 导出 `.marginnotes` / `.marginpkg` 等）
+> - 复习卡片（Flashcards）与跨设备同步
+>
+> 以下为上游 Saber 的原始说明。
+
+---
+
 # <img src="https://github.com/saber-notes/saber/raw/main/assets/icon/icon.png" width="30" height="30" alt="Logo"> Saber
 
 [<img src='https://github.com/saber-notes/saber/blob/main/assets_raw/badges/google-play-badge.svg'
