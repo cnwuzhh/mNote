@@ -7,7 +7,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:nextcloud/core.dart';
 import 'package:nextcloud/nextcloud.dart';
-import 'package:regexed_validator/regexed_validator.dart';
 import 'package:saber/components/settings/app_info.dart';
 import 'package:saber/components/theming/adaptive_circular_progress_indicator.dart';
 import 'package:saber/data/nextcloud/login_flow.dart';
@@ -273,10 +272,10 @@ class const _LoginWithNextcloud({
   Widget build(BuildContext context) {
     final serverUrlController = useTextEditingController();
 
-    final isServerUrlValid = useListenableSelector(serverUrlController, () {
-      final url = _prependHttpsIfMissing(serverUrlController.text);
-      return validator.url(url);
-    });
+    final isServerUrlValid = useListenableSelector(
+      serverUrlController,
+      () => _isValidServerUrl(serverUrlController.text),
+    );
 
     final buttonStyle = useMemoized(
       () => _buttonStyleFromBrand(_ncColor),
@@ -319,7 +318,7 @@ class const _LoginWithNextcloud({
           onPressed: isServerUrlValid
               ? () {
                   serverUrlController.text = _prependHttpsIfMissing(
-                    serverUrlController.text,
+                    serverUrlController.text.trim(),
                   );
                   login(serverUrlController.text);
                 }
@@ -411,6 +410,15 @@ bool _shouldUseTwoColumns(Size screenSize) {
   return landscape &&
       screenSize.width > minWidthForTwoColumns &&
       screenSize.height > minHeightForTwoColumns;
+}
+
+/// Accepts any http(s) URL with a non-empty host, including hosts without a
+/// TLD such as `localhost` or `nas`, and URLs with a port.
+bool _isValidServerUrl(String input) {
+  final uri = Uri.tryParse(_prependHttpsIfMissing(input.trim()));
+  return uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
 }
 
 String _prependHttpsIfMissing(String url) =>
