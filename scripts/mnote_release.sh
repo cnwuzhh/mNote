@@ -6,6 +6,10 @@
 #     RELEASE_NOTES.md     header + docs/releases/UNRELEASED.md + commit list
 #     manifest.json        package, version, commit, sha256, checks
 #     testcases/           testing/device/* + assets/ (sample PDFs) + reference/ (screenshots)
+#     results/             empty; the test agent writes its report here
+#
+# Also keeps $MNOTE_BUILDS_DIR/README.md (agent handoff), LATEST -> newest
+# build, and BUILDS.md (copy of docs/releases/index.md) up to date.
 #
 # Afterwards the notes are archived to docs/releases/<build-id>.md, a row is
 # added to docs/releases/index.md, UNRELEASED.md is reset, and these files
@@ -168,6 +172,12 @@ cp scripts/release_notes_template.md docs/releases/UNRELEASED.md
 git add "docs/releases/$ID.md" docs/releases/index.md docs/releases/UNRELEASED.md
 git -c user.name="${GIT_AUTHOR_NAME:-cnwuzhh}" -c user.email="${GIT_AUTHOR_EMAIL:-cnwuzhh@users.noreply.github.com}" \
   commit -q -m "release: notes for $ID"
+
+# ---- entry points for the test agent ----
+mkdir -p "$OUT/results"
+cp testing/device/AGENT_HANDOFF.md "$BUILDS_DIR/README.md"
+ln -sfn "$ID" "$BUILDS_DIR/LATEST"
+cp docs/releases/index.md "$BUILDS_DIR/BUILDS.md"
 
 echo "== done: $OUT"
 ls -la "$OUT"
