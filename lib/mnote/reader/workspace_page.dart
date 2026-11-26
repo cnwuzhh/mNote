@@ -421,7 +421,8 @@ class _WorkspacePageState extends State<WorkspacePage>
         ),
       ),
     );
-    if (mounted) setState(() {});
+    // Colour or other edits in the panel change highlights: repaint pages.
+    if (mounted) _repaintPages();
   }
 
   void _deleteCard(MCard card) {
