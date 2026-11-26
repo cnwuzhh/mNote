@@ -27,7 +27,7 @@ abstract class RoutePaths {
 
 abstract class HomeRoutes {
   static String browseFilePath(String? filePath) {
-    var path = routes[1].path;
+    var path = routes[2].path;
     if (filePath != '/' && filePath != '' && filePath != null) {
       path += '?path=${Uri.encodeQueryComponent(filePath)}';
     }
@@ -37,6 +37,17 @@ abstract class HomeRoutes {
   static final PathFunction _homeFunction = pathToFunction(RoutePaths.home);
 
   static List<HomeRoute> get routes => <HomeRoute>[
+    // mNote: study sets (bookshelf) is the first tab.
+    HomeRoute._(
+      _homeFunction({'subpage': HomePage.studySetsSubpage}),
+      destination: const NavigationDestination(
+        label: '学习集',
+        icon: AdaptiveIcon(
+          icon: Icons.menu_book,
+          cupertinoIcon: CupertinoIcons.book_fill,
+        ),
+      ),
+    ),
     HomeRoute._(
       _homeFunction({'subpage': HomePage.recentSubpage}),
       destination: NavigationDestination(

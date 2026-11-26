@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:saber/data/flavor_config.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/data/routes.dart';
-import 'package:saber/main.dart';
 import 'package:saber/pages/home/home.dart';
 
 void main() {
@@ -16,7 +15,9 @@ void main() {
         stows.layoutSize.value = .phone;
 
         final router = GoRouter(
-          initialLocation: App.initialLocation,
+          // mNote: the app now opens on the study sets tab; this test is
+          // about the Recent -> Settings transition, so start on Recent.
+          initialLocation: '${RoutePaths.prefixOfHome}/${HomePage.recentSubpage}',
           routes: [
             GoRoute(
               path: RoutePaths.home,

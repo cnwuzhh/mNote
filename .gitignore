@@ -66,3 +66,6 @@ coverage/
 
 # temp files for fdroid pubspec.lock
 /tmpfdroid/
+
+# mNote screenshot test diff output
+test/mnote/failures/
