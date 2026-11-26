@@ -1,4 +1,4 @@
-package com.adilhanney.saber
+package io.github.cnwuzhh.mnote
 
 import android.os.Bundle
 import androidx.core.view.ViewCompat

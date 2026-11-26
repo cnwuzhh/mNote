@@ -18,10 +18,10 @@ class const AppInfo({super.key}) extends StatelessWidget {
     'https://saber.adil.hanney.org/privacy-policy/',
   );
   static final Uri licenseUrl = Uri.parse(
-    'https://github.com/saber-notes/saber/blob/main/LICENSE.md',
+    'https://github.com/cnwuzhh/mNote/blob/main/LICENSE.md',
   );
   static final Uri releasesUrl = Uri.parse(
-    'https://github.com/saber-notes/saber/releases',
+    'https://github.com/cnwuzhh/mNote/releases',
   );
 
   static String get info => [

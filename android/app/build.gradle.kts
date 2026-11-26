@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.adilhanney.saber"
+    namespace = "io.github.cnwuzhh.mnote"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
@@ -29,7 +29,7 @@ android {
 
     defaultConfig {
         // https://flutter.dev/to/review-gradle-config
-        applicationId = "com.adilhanney.saber"
+        applicationId = "io.github.cnwuzhh.mnote"
         // If you change this minSdk, also update patches/pre/remove_proprietary_dependencies.sh.
         minSdk = 26
         targetSdk = flutter.targetSdkVersion

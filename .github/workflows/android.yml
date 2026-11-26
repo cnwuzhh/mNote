@@ -1,15 +1,9 @@
 name: Build for Android
 
 on:
-  # Enable manual run
+  # mNote: upstream Saber workflow (FOSS build + Play Store upload) is kept
+  # for reference but only runs manually. CI builds use mnote-android.yml.
   workflow_dispatch:
-  push:
-    tags:
-      - "**"
-    branches:
-      - "**"
-    paths:
-      - .github/workflows/android.yml
 
 jobs:
   build-android:
