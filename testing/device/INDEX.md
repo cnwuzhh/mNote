@@ -32,8 +32,21 @@
 | TC-UI-01 | 夜读 | P1 |  | cases/TC-20-studyset-reader-excerpt.md | UC-01 A8 |
 | TC-UI-02 | 竖屏 | P2 |  | cases/TC-20-studyset-reader-excerpt.md | UC-01 A6（部分） |
 | TC-UI-03 | 未开放的模式 | P2 |  | cases/TC-20-studyset-reader-excerpt.md | 四模式工具条 |
+| TC-INK-01 | 进入手写模式 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 1 |
+| TC-INK-02 | 笔写、手指滚动 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 2–3 |
+| TC-INK-03 | 缩放后笔迹位置不变 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 4 |
+| TC-INK-04 | 荧光笔不盖住文字 | P1 |  | cases/TC-30-ink-export.md | UC-02 步骤 5、B4 |
+| TC-INK-05 | 撤销 / 重做 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 6 |
+| TC-INK-06 | 橡皮 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 7 |
+| TC-INK-07 | 套索摘录为卡片 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 8–9、B5 |
+| TC-INK-08 | 手指书写开关 | P1 |  | cases/TC-30-ink-export.md | UC-02 B1 |
+| TC-INK-09 | 跨页的一笔 | P2 |  | cases/TC-30-ink-export.md | UC-02 B2 |
+| TC-INK-10 | 手写模式下其他操作照常 | P1 |  | cases/TC-30-ink-export.md | UC-02 B3、B7 |
+| TC-INK-11 | 笔迹持久化 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 10 |
+| TC-INK-12 | 很多笔时的流畅度 | P2 |  | cases/TC-30-ink-export.md | UC-02 B6 |
+| TC-EXP-01 | 导出带批注的 PDF | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 11 |
 
-冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-PERSIST-01。
+冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-PERSIST-01。
 
 ## 维护规则
 - 用例 ID 一经发布不改、不复用；功能删除时把用例标为「已废弃」并保留。

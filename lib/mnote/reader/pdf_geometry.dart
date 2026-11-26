@@ -54,10 +54,22 @@ extension PageRectPdf on PageRect {
   PdfRect toPdfRect() => PdfRect(left, top, right, bottom);
 }
 
+/// Whether [c] has both its document and its page layout. pdfrx reports
+/// `isReady` as soon as the document is open, slightly before the first
+/// layout, and asking for page positions in between throws.
+bool hasPageLayout(PdfViewerController c) {
+  if (!c.isReady) return false;
+  try {
+    return c.layout.pageLayouts.length == c.pageCount;
+  } catch (_) {
+    return false;
+  }
+}
+
 /// Where a card's source sits in the viewer's local coordinates, or null if
 /// the viewer is not ready.
 Rect? cardRectInViewer(PdfViewerController c, MCard card) {
-  if (!c.isReady || card.rects.isEmpty) return null;
+  if (!hasPageLayout(c) || card.rects.isEmpty) return null;
   final first = card.rects.first;
   if (first.page < 1 || first.page > c.pageCount) return null;
   final docRect = c.calcRectForRectInsidePage(
@@ -71,7 +83,7 @@ Rect? cardRectInViewer(PdfViewerController c, MCard card) {
 
 /// Union of all rects of [card] on its first page, in viewer local coords.
 Rect? cardBoundsInViewer(PdfViewerController c, MCard card) {
-  if (!c.isReady || card.rects.isEmpty) return null;
+  if (!hasPageLayout(c) || card.rects.isEmpty) return null;
   Rect? acc;
   for (final r in card.rects.where((r) => r.page == card.page)) {
     final d = c.calcRectForRectInsidePage(
@@ -89,7 +101,7 @@ Rect? cardBoundsInViewer(PdfViewerController c, MCard card) {
 
 /// Scrolls the viewer so that [card]'s source is visible.
 Future<void> goToCard(PdfViewerController c, MCard card) async {
-  if (!c.isReady || card.rects.isEmpty) return;
+  if (!hasPageLayout(c) || card.rects.isEmpty) return;
   final first = card.rects.first;
   await c.goToRectInsidePage(
     pageNumber: first.page,

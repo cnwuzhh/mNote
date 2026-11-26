@@ -1,14 +1,19 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:perfect_freehand/perfect_freehand.dart';
+import 'package:saber/components/canvas/_stroke.dart';
+import 'package:saber/mnote/ink/ink_document.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/reader/pdf_geometry.dart';
 import 'package:saber/mnote/reader/workspace_page.dart';
 import 'package:saber/mnote/store/study_store.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
+import 'package:sbn/tool_id.dart';
 
 /// Renders the workspace to test/mnote/screenshots/*.png for visual review.
 /// Not a regression test (fonts depend on the machine); run with:
@@ -26,9 +31,10 @@ Future<void> _loadFont(String family, List<String> paths) async {
 }
 
 void main() {
-  for (final night in [false, true]) {
+  for (final variant in ['day', 'night', 'handwrite']) {
+    final night = variant == 'night';
     testWidgets(
-      'workspace screenshot ${night ? 'night' : 'day'}',
+      'workspace screenshot $variant',
       skip: Platform.environment['MNOTE_SCREENSHOTS'] != '1',
       (tester) async {
         tester.view.physicalSize = const Size(1280, 800);
@@ -119,7 +125,58 @@ void main() {
           ..addCard(set, a)
           ..addCard(set, b)
           ..addCard(set, c);
-        await tester.runAsync(() => pdf!.dispose());
+        // Handwriting on page 1: an underline, a circle and a highlighter pass.
+        final ink = InkDocument();
+        final p1 = pdf!.pages[0];
+        final size = Size(p1.width, p1.height);
+        Stroke stroke(
+          List<Offset> pts, {
+          bool hl = false,
+          Color color = const Color(0xFFB4532A),
+        }) {
+          final s = Stroke(
+            color: color,
+            pressureEnabled: !hl,
+            options: StrokeOptions(
+              size: hl ? 15 : 2.0,
+              thinning: hl ? 0 : 0.5,
+              isComplete: true,
+            ),
+            pageIndex: 0,
+            page: ink.pageSize(1, size),
+            toolId: hl ? ToolId.highlighter : ToolId.fountainPen,
+          );
+          for (var i = 0; i < pts.length; i++) {
+            s.addPoint(pts[i], 0.35 + 0.3 * (i % 5) / 5);
+          }
+          return s;
+        }
+
+        ink
+          ..add(
+            1,
+            stroke([
+              for (var x = 330.0; x <= 560; x += 6)
+                Offset(x, 312 + (x % 18) / 9),
+            ]),
+          )
+          ..add(
+            1,
+            stroke([
+              for (var a = 0.0; a <= 6.6; a += 0.2)
+                Offset(470 + 52 * math.cos(a), 410 + 16 * math.sin(a)),
+            ]),
+          )
+          ..add(
+            1,
+            stroke(
+              [for (var x = 100.0; x <= 296; x += 8) Offset(x, 443)],
+              hl: true,
+              color: const Color(0xFFF2CE3C),
+            ),
+          );
+        await tester.runAsync(() => ink.save(store.inkFile(set, doc)));
+        await tester.runAsync(() => pdf.dispose());
 
         mnoteNight.value = night;
         await tester.pumpWidget(
@@ -141,11 +198,18 @@ void main() {
           );
           await tester.pump(const Duration(milliseconds: 50));
         }
+        if (variant == 'handwrite') {
+          await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
+          for (var i = 0; i < 10; i++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 100)),
+            );
+            await tester.pump(const Duration(milliseconds: 50));
+          }
+        }
         await expectLater(
           find.byType(WorkspacePage),
-          matchesGoldenFile(
-            'screenshots/workspace_${night ? 'night' : 'day'}.png',
-          ),
+          matchesGoldenFile('screenshots/workspace_$variant.png'),
         );
         mnoteNight.value = false;
         await tester.pumpWidget(const SizedBox());

@@ -4,7 +4,13 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import 'package:saber/components/canvas/_stroke.dart';
+import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/mnote/cards/card_detail_panel.dart';
+import 'package:saber/mnote/export/pdf_export.dart';
+import 'package:saber/mnote/ink/ink_document.dart';
+import 'package:saber/mnote/ink/ink_input_layer.dart';
+import 'package:saber/mnote/ink/ink_paint.dart';
 import 'package:saber/mnote/mindmap/mindmap_view.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/model/text_clean.dart';
@@ -66,6 +72,17 @@ class _WorkspacePageState extends State<WorkspacePage>
   // Box-select (框选) state, viewer-local coordinates.
   Offset? boxStart, boxEnd;
 
+  // Handwriting.
+  InkDocument? ink;
+  InkTool inkTool = InkTool.pen;
+  Color penColor = penColors.first;
+  Color highlighterColor = highlighterColors.first;
+  InkWidth inkWidth = InkWidth.medium;
+  Timer? _inkSave;
+
+  /// Current lasso selection: page, lasso path (page space), strokes.
+  (int, Path, List<Stroke>)? lassoSel;
+
   StudySet get set => widget.set;
   StudyDoc get doc => widget.doc;
   StudyStore get store => widget.store;
@@ -80,6 +97,12 @@ class _WorkspacePageState extends State<WorkspacePage>
     _removeSearchListener = searcher.addListener(_onViewChanged);
     doc.lastOpened = DateTime.now();
     store.touch(set);
+    InkDocument.load(store.inkFile(set, doc)).then((d) {
+      if (!mounted) return;
+      d.history.addListener(_onViewChanged);
+      setState(() => ink = d);
+      _repaintPages();
+    });
   }
 
   @override
@@ -93,6 +116,11 @@ class _WorkspacePageState extends State<WorkspacePage>
     controller.removeListener(_onViewChanged);
     _removeSearchListener?.call();
     searcher.dispose();
+    ink?.history.removeListener(_onViewChanged);
+    if (_inkSave?.isActive ?? false) {
+      _inkSave!.cancel();
+      ink?.save(store.inkFile(set, doc));
+    }
     store.flush();
     super.dispose();
   }
@@ -160,6 +188,185 @@ class _WorkspacePageState extends State<WorkspacePage>
             paint,
           );
         }
+      }
+    }
+    final strokes = ink?.strokesOn(page.pageNumber) ?? const [];
+    if (strokes.isNotEmpty) {
+      final sel = lassoSel;
+      canvas.save();
+      canvas.translate(pageRect.left, pageRect.top);
+      final k = pageRect.width / page.width;
+      canvas.scale(k, k);
+      paintInk(
+        canvas,
+        strokes,
+        bounds: Rect.fromLTWH(0, 0, page.width, page.height),
+        dark: dark,
+        selected: sel != null && sel.$1 == page.pageNumber
+            ? sel.$3.toSet()
+            : const {},
+        selectionColor: MnotePalette.of(context).accent,
+      );
+      canvas.restore();
+    }
+  }
+
+  // ---------------- handwriting ----------------
+
+  void _inkChanged() {
+    _repaintPages();
+    _inkSave?.cancel();
+    _inkSave = Timer(const Duration(milliseconds: 600), () {
+      final d = ink;
+      if (d != null) d.save(store.inkFile(set, doc));
+    });
+  }
+
+  void _onLasso(int page, Path path) {
+    final d = ink;
+    if (d == null) return;
+    final hits = strokesInLasso(d, page, path);
+    if (hits.isEmpty) {
+      setState(() => lassoSel = null);
+      _toast('没有选中笔迹');
+      _repaintPages();
+      return;
+    }
+    setState(() => lassoSel = (page, path, hits));
+    _repaintPages();
+  }
+
+  void _clearLasso() {
+    setState(() => lassoSel = null);
+    _repaintPages();
+  }
+
+  void _deleteLasso() {
+    final sel = lassoSel;
+    if (sel == null) return;
+    ink?.remove(sel.$1, sel.$3);
+    lassoSel = null;
+    _inkChanged();
+  }
+
+  /// Turns the lasso selection (and the page content under it) into an image
+  /// card, like the box-select tool.
+  Future<void> _lassoToCard() async {
+    final sel = lassoSel;
+    if (sel == null || !controller.isReady) return;
+    final (pageNo, _, strokes) = sel;
+    final page = controller.pages[pageNo - 1];
+    var region = strokes
+        .map(strokeBounds)
+        .reduce((a, b) => a.expandToInclude(b))
+        .inflate(8);
+    region = Rect.fromLTRB(
+      region.left.clamp(0, page.width),
+      region.top.clamp(0, page.height),
+      region.right.clamp(0, page.width),
+      region.bottom.clamp(0, page.height),
+    );
+    if (region.width < 2 || region.height < 2) return;
+    const s = 3.0;
+    final base = await page.renderForDisplay(
+      x: (region.left * s).round(),
+      y: (region.top * s).round(),
+      width: (region.width * s).round(),
+      height: (region.height * s).round(),
+      fullWidth: page.width * s,
+      fullHeight: page.height * s,
+      backgroundColor: 0xFFFFFFFF,
+    );
+    if (base == null) {
+      _toast('截取失败');
+      return;
+    }
+    final composed = await composeRegion(base, region, s, strokes);
+    base.dispose();
+    final bytes = await composed.toByteData(format: ui.ImageByteFormat.png);
+    composed.dispose();
+    if (bytes == null) return;
+    final name = await store.saveImage(set, bytes.buffer.asUint8List());
+    final card = MCard(
+      id: newId(),
+      docId: doc.id,
+      title: '手写摘录 p.$pageNo',
+      text: '',
+      color: color,
+      // PageRect uses PDF coordinates (origin bottom-left).
+      rects: [
+        PageRect(
+          pageNo,
+          region.left,
+          page.height - region.top,
+          region.right,
+          page.height - region.bottom,
+        ),
+      ],
+      image: name,
+    );
+    store.addCard(set, card);
+    lassoSel = null;
+    _repaintPages();
+    _flyIn(card);
+  }
+
+  Rect? _lassoBoundsInViewer() {
+    final sel = lassoSel;
+    if (sel == null || !hasPageLayout(controller)) return null;
+    final space = PageSpace(controller);
+    final b = sel.$2.getBounds();
+    final r = space.pageRectInDocument(sel.$1);
+    final k = r.width / space.pageSize(sel.$1).width;
+    Offset toLocal(Offset pt) => controller.documentToLocal(r.topLeft + pt * k);
+    return Rect.fromPoints(toLocal(b.topLeft), toLocal(b.bottomRight));
+  }
+
+  Future<void> _export() async {
+    if (!controller.isReady) return;
+    final progress = ValueNotifier<(int, int)>((0, controller.pageCount));
+    final theme = Theme.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Theme(
+        data: theme,
+        child: AlertDialog(
+          title: const Text('导出带批注的 PDF'),
+          content: ValueListenableBuilder<(int, int)>(
+            valueListenable: progress,
+            builder: (_, v, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LinearProgressIndicator(value: v.$2 == 0 ? null : v.$1 / v.$2),
+                const SizedBox(height: 12),
+                Text('第 ${v.$1} / ${v.$2} 页'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    try {
+      final bytes = await exportAnnotatedPdf(
+        document: controller.document,
+        cards: docCards.toList(),
+        ink: ink ?? InkDocument(),
+        onProgress: (d, t) => progress.value = (d, t),
+      );
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      final safeTitle = doc.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      await FileManager.exportFile(
+        '${safeTitle}_mNote.pdf',
+        bytes,
+        context: context,
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _toast('导出失败：$e');
       }
     }
   }
@@ -623,6 +830,12 @@ class _WorkspacePageState extends State<WorkspacePage>
             }),
           ),
           IconButton(
+            key: const ValueKey('btn-export'),
+            tooltip: '导出',
+            icon: Icon(Icons.ios_share, color: p.ink2),
+            onPressed: _export,
+          ),
+          IconButton(
             key: const ValueKey('btn-night'),
             tooltip: p.dark ? '日间' : '夜读',
             icon: Icon(
@@ -646,7 +859,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     return LayoutBuilder(
       builder: (context, cons) {
         final viewW = cons.maxWidth - _railWidth;
-        final placed = controller.isReady
+        final placed = hasPageLayout(controller)
             ? layoutMarginCards(
                 controller,
                 set.mapCards.where((c) => c.docId == doc.id),
@@ -749,6 +962,28 @@ class _WorkspacePageState extends State<WorkspacePage>
                 ),
               ),
             ),
+            if (mode == WorkMode.handwrite && ink != null)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: viewW,
+                child: InkInputLayer(
+                  key: const ValueKey('ink-layer'),
+                  controller: controller,
+                  ink: ink!,
+                  tool: inkTool,
+                  color: inkTool == InkTool.highlighter
+                      ? highlighterColor
+                      : penColor,
+                  width: inkWidth,
+                  fingerDrawing: store.fingerDrawing,
+                  dark: p.dark,
+                  onChanged: _inkChanged,
+                  onLasso: _onLasso,
+                ),
+              ),
+            if (lassoSel != null) ..._lassoMenu(p, viewW),
             if (mode == WorkMode.excerpt && tool == ExcerptTool.box)
               Positioned(
                 left: 0,
@@ -791,10 +1026,46 @@ class _WorkspacePageState extends State<WorkspacePage>
               child: Align(
                 alignment: Alignment.bottomLeft,
                 child: ModeToolbar(
+                  ink: ink == null
+                      ? null
+                      : InkControls(
+                          tool: inkTool,
+                          onTool: (t) {
+                            setState(() => inkTool = t);
+                            if (lassoSel != null) _clearLasso();
+                          },
+                          color: inkTool == InkTool.highlighter
+                              ? highlighterColor
+                              : penColor,
+                          onColor: (c) => setState(() {
+                            if (inkTool == InkTool.highlighter) {
+                              highlighterColor = c;
+                            } else {
+                              penColor = c;
+                            }
+                          }),
+                          width: inkWidth,
+                          onWidth: (w) => setState(() => inkWidth = w),
+                          canUndo: ink!.history.canUndo,
+                          canRedo: ink!.history.canRedo,
+                          onUndo: () {
+                            if (ink!.undo()) _inkChanged();
+                          },
+                          onRedo: () {
+                            if (ink!.redo()) _inkChanged();
+                          },
+                          fingerDrawing: store.fingerDrawing,
+                          onFingerDrawing: (v) =>
+                              setState(() => store.fingerDrawing = v),
+                        ),
                   mode: mode,
                   onMode: (m) {
                     setState(() => mode = m);
-                    if (m != WorkMode.excerpt) _toast('「${m.label}」模式将在后续版本提供');
+                    if (m == WorkMode.organize || m == WorkMode.recall) {
+                      _toast('「${m.label}」模式将在后续版本提供');
+                    }
+                    if (m != WorkMode.handwrite && lassoSel != null)
+                      _clearLasso();
                   },
                   color: color,
                   onColor: (c) => setState(() => color = c),
@@ -810,6 +1081,73 @@ class _WorkspacePageState extends State<WorkspacePage>
         );
       },
     );
+  }
+
+  List<Widget> _lassoMenu(MnotePalette p, double viewW) {
+    final b = _lassoBoundsInViewer();
+    if (b == null) return const [];
+    final top = (b.top - 56).clamp(8.0, double.infinity);
+    final left = b.left.clamp(8.0, (viewW - 330).clamp(8.0, double.infinity));
+    Widget btn(
+      String key,
+      IconData icon,
+      String label,
+      VoidCallback onTap, {
+      Color? fill,
+    }) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: fill ?? Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          key: ValueKey(key),
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return [
+      Positioned(
+        left: left,
+        top: top,
+        child: Material(
+          color: const Color(0xFF2A251E),
+          elevation: 8,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                btn(
+                  'lasso-to-card',
+                  Icons.note_add_outlined,
+                  '摘录为卡片',
+                  _lassoToCard,
+                  fill: p.accent,
+                ),
+                btn('lasso-delete', Icons.delete_outline, '删除', _deleteLasso),
+                btn('lasso-cancel', Icons.close, '取消', _clearLasso),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _splitter(MnotePalette p) {

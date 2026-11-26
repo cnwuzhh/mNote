@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:saber/mnote/ink/ink_paint.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
 
@@ -16,9 +17,38 @@ enum WorkMode {
 /// Tools of the excerpt mode.
 enum ExcerptTool { text, box, highlight }
 
+/// State and callbacks of the handwrite tool group.
+class InkControls {
+  const new({
+    required this.tool,
+    required this.onTool,
+    required this.color,
+    required this.onColor,
+    required this.width,
+    required this.onWidth,
+    required this.canUndo,
+    required this.canRedo,
+    required this.onUndo,
+    required this.onRedo,
+    required this.fingerDrawing,
+    required this.onFingerDrawing,
+  });
+
+  final InkTool tool;
+  final ValueChanged<InkTool> onTool;
+  final Color color;
+  final ValueChanged<Color> onColor;
+  final InkWidth width;
+  final ValueChanged<InkWidth> onWidth;
+  final bool canUndo, canRedo;
+  final VoidCallback onUndo, onRedo;
+  final bool fingerDrawing;
+  final ValueChanged<bool> onFingerDrawing;
+}
+
 /// Floating toolbar at the bottom of the reader. Switching mode swaps the
-/// whole tool group. In M1 only the excerpt mode is functional; the other
-/// modes show their tools disabled.
+/// whole tool group. Excerpt and handwrite are functional; organize and
+/// recall show their tools disabled.
 class ModeToolbar extends StatelessWidget {
   const new({
     super.key,
@@ -28,6 +58,7 @@ class ModeToolbar extends StatelessWidget {
     required this.onColor,
     required this.tool,
     required this.onTool,
+    this.ink,
   });
 
   final WorkMode mode;
@@ -36,6 +67,7 @@ class ModeToolbar extends StatelessWidget {
   final ValueChanged<ExcerptColor> onColor;
   final ExcerptTool tool;
   final ValueChanged<ExcerptTool> onTool;
+  final InkControls? ink;
 
   @override
   Widget build(BuildContext context) {
@@ -56,13 +88,54 @@ class ModeToolbar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final m in WorkMode.values)
-                _Seg(
-                  key: ValueKey('mode-${m.name}'),
-                  label: m.label,
-                  selected: m == mode,
-                  onTap: () => onMode(m),
-                ),
+              if (mode == WorkMode.handwrite)
+                // The handwrite tool group is wide: show the modes as one chip.
+                PopupMenuButton<WorkMode>(
+                  key: const ValueKey('mode-menu'),
+                  tooltip: '切换模式',
+                  initialValue: mode,
+                  onSelected: onMode,
+                  itemBuilder: (_) => [
+                    for (final m in WorkMode.values)
+                      PopupMenuItem(
+                        key: ValueKey('mode-menu-${m.name}'),
+                        value: m,
+                        child: Text(m.label),
+                      ),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: p.ink,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          mode.label,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: p.paper,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Icon(Icons.arrow_drop_down, size: 18, color: p.paper),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                for (final m in WorkMode.values)
+                  _Seg(
+                    key: ValueKey('mode-${m.name}'),
+                    label: m.label,
+                    selected: m == mode,
+                    onTap: () => onMode(m),
+                  ),
               Container(
                 width: 1,
                 height: 26,
@@ -127,12 +200,88 @@ class ModeToolbar extends StatelessWidget {
           ),
         ];
       case WorkMode.handwrite:
-        return _soon(p, const [
-          (Icons.edit_outlined, '钢笔'),
-          (Icons.brush_outlined, '荧光笔'),
-          (Icons.cleaning_services_outlined, '橡皮'),
-          (Icons.gesture, '套索'),
-        ]);
+        final k = ink;
+        if (k == null) return const [];
+        final drawing = k.tool == InkTool.pen || k.tool == InkTool.highlighter;
+        final palette = k.tool == InkTool.highlighter
+            ? highlighterColors
+            : penColors;
+        return [
+          for (final (t, icon) in const [
+            (InkTool.pen, Icons.edit_outlined),
+            (InkTool.highlighter, Icons.brush_outlined),
+            (InkTool.eraser, Icons.cleaning_services_outlined),
+            (InkTool.lasso, Icons.gesture),
+          ])
+            _Tool(
+              key: ValueKey('ink-${t.name}'),
+              icon: icon,
+              label: t.label,
+              selected: k.tool == t,
+              onTap: () => k.onTool(t),
+              iconOnly: true,
+            ),
+          if (drawing) ...[
+            const SizedBox(width: 6),
+            for (final w in InkWidth.values)
+              _Seg(
+                key: ValueKey('ink-width-${w.name}'),
+                label: w.label,
+                selected: k.width == w,
+                onTap: () => k.onWidth(w),
+              ),
+            const SizedBox(width: 6),
+            for (final c in palette)
+              InkResponse(
+                key: ValueKey('ink-color-${c.toARGB32()}'),
+                radius: 18,
+                onTap: () => k.onColor(c),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: c,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: c.toARGB32() == k.color.toARGB32()
+                          ? p.ink
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+          const SizedBox(width: 6),
+          _Tool(
+            key: const ValueKey('ink-undo'),
+            icon: Icons.undo,
+            label: '撤销',
+            selected: false,
+            onTap: k.canUndo ? k.onUndo : null,
+            iconOnly: true,
+          ),
+          _Tool(
+            key: const ValueKey('ink-redo'),
+            icon: Icons.redo,
+            label: '重做',
+            selected: false,
+            onTap: k.canRedo ? k.onRedo : null,
+            iconOnly: true,
+          ),
+          const SizedBox(width: 6),
+          _Tool(
+            key: const ValueKey('ink-finger'),
+            icon: k.fingerDrawing
+                ? Icons.touch_app
+                : Icons.do_not_touch_outlined,
+            label: k.fingerDrawing ? '手指书写：开' : '手指书写：关',
+            selected: k.fingerDrawing,
+            onTap: () => k.onFingerDrawing(!k.fingerDrawing),
+            iconOnly: true,
+          ),
+        ];
       case WorkMode.organize:
         return _soon(p, const [
           (Icons.open_with, '拖拽'),
@@ -203,12 +352,16 @@ class _Tool extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.iconOnly = false,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback? onTap;
+
+  /// Show only the icon; [label] becomes the tooltip (and accessibility label).
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -217,24 +370,30 @@ class _Tool extends StatelessWidget {
     final fg = !enabled
         ? p.ink3.withValues(alpha: 0.55)
         : (selected ? p.accent : p.ink2);
-    return Material(
+    final button = Material(
       color: selected ? p.accent.withValues(alpha: 0.12) : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: fg),
-              const SizedBox(width: 5),
-              Text(label, style: TextStyle(fontSize: 14, color: fg)),
-            ],
+          padding: EdgeInsets.symmetric(
+            horizontal: iconOnly ? 8 : 10,
+            vertical: 8,
           ),
+          child: iconOnly
+              ? Icon(icon, size: 20, color: fg)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 18, color: fg),
+                    const SizedBox(width: 5),
+                    Text(label, style: TextStyle(fontSize: 14, color: fg)),
+                  ],
+                ),
         ),
       ),
     );
+    return iconOnly ? Tooltip(message: label, child: button) : button;
   }
 }

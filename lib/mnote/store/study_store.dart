@@ -54,6 +54,29 @@ class StudyStore extends ChangeNotifier {
   File docFile(StudySet set, StudyDoc doc) =>
       File('${_setDir(set.id).path}/docs/${doc.fileName}');
 
+  /// Handwriting of [doc] (see InkDocument).
+  File inkFile(StudySet set, StudyDoc doc) =>
+      File('${_setDir(set.id).path}/ink/${doc.id}.ink.bson');
+
+  // ---------- app-wide mNote settings (settings.json) ----------
+
+  Map<String, dynamic> _settings = {};
+  File get _settingsFile => File('${rootDir.path}/settings.json');
+
+  /// Whether a finger draws in handwrite mode (default: only the stylus
+  /// draws and fingers scroll).
+  bool get fingerDrawing => _settings['fingerDrawing'] as bool? ?? false;
+  set fingerDrawing(bool v) {
+    _settings['fingerDrawing'] = v;
+    _saveSettings();
+    notifyListeners();
+  }
+
+  Future<void> _saveSettings() async {
+    await _settingsFile.parent.create(recursive: true);
+    await _settingsFile.writeAsString(jsonEncode(_settings), flush: true);
+  }
+
   File imageFile(StudySet set, String fileName) =>
       File('${_setDir(set.id).path}/images/$fileName');
 
@@ -67,6 +90,14 @@ class StudyStore extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    try {
+      if (_settingsFile.existsSync()) {
+        _settings = (jsonDecode(await _settingsFile.readAsString()) as Map)
+            .cast<String, dynamic>();
+      }
+    } catch (e) {
+      log.warning('Ignoring unreadable settings.json: $e');
+    }
     _sets.clear();
     final dir = Directory('${rootDir.path}/sets');
     if (!dir.existsSync()) return;

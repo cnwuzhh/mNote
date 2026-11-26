@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:saber/mnote/ink/ink_paint.dart';
 import 'package:saber/mnote/mindmap/mindmap_view.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/reader/excerpt_menu.dart';
@@ -129,20 +130,40 @@ void main() {
             onColor: (_) {},
             tool: ExcerptTool.text,
             onTool: (_) {},
+            ink: InkControls(
+              tool: InkTool.pen,
+              onTool: (_) {},
+              color: penColors.first,
+              onColor: (_) {},
+              width: InkWidth.medium,
+              onWidth: (_) {},
+              canUndo: false,
+              canRedo: false,
+              onUndo: () {},
+              onRedo: () {},
+              fingerDrawing: false,
+              onFingerDrawing: (_) {},
+            ),
           ),
         ),
       ),
     );
     expect(find.text('框选'), findsOneWidget);
-    expect(find.text('钢笔'), findsNothing);
+    expect(find.byTooltip('钢笔'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
     await tester.pump();
     expect(find.text('框选'), findsNothing);
-    expect(find.text('钢笔'), findsOneWidget);
+    for (final t in ['钢笔', '荧光笔', '橡皮', '套索', '撤销', '重做', '手指书写：关']) {
+      expect(find.byTooltip(t), findsOneWidget, reason: t);
+    }
+    expect(find.text('后续版本'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('mode-recall')));
-    await tester.pump();
+    // In handwrite mode the modes collapse into a menu.
+    await tester.tap(find.byKey(const ValueKey('mode-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mode-menu-recall')));
+    await tester.pumpAndSettle();
     expect(find.text('揭示'), findsOneWidget);
   });
 }
