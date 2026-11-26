@@ -14,6 +14,7 @@
     assets/                测试素材（论文 PDF 等）
     reference/             参考截图（期望界面大致长这样）
     RESULTS_TEMPLATE.md    结果报告模板
+    KNOWN_ISSUES.md 已知问题和不修复项（遇到不必报告）
 ```
 
 ## 1. 跑哪些用例
