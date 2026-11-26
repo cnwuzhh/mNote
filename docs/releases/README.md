@@ -4,7 +4,7 @@
 
 ```
 mnote-<日期>-<时间>-<commit>-<debug|release>/
-  mNote-<编译编号>.apk
+  <编译编号>.apk
   RELEASE_NOTES.md   本次改进 + 本次测试范围 + 提交记录
   manifest.json      包名、版本、commit、APK SHA-256、自动化检查结果
   testcases/         真机测试用例（给 adb 测试 Agent）、测试素材、参考截图、结果模板
