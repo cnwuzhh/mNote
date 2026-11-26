@@ -46,6 +46,19 @@
 | TC-INK-11 | 笔迹持久化 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 10 |
 | TC-INK-12 | 很多笔时的流畅度 | P2 |  | cases/TC-30-ink-export.md | UC-02 B6 |
 | TC-EXP-01 | 导出带批注的 PDF | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 11 |
+| TC-MAP-04 | 拖到另一张卡片下成为子节点 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-05 | 拖成三层 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-06 | 带着子节点一起移动 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-07 | 不能拖进自己的子孙 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-08 | 拖到根节点回到第一层 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-09 | 拖到空白处松手 = 取消 | P1 |  | cases/TC-40-mindmap-drag.md | 脑图拖动 |
+| TC-MAP-10 | 脑图浮层里拖动，和整理模式一致 | P1 |  | cases/TC-40-mindmap-drag.md | 脑图拖动、布局 v2 |
+| TC-MAP-11 | 拖动后重启仍保留 | P0 |  | cases/TC-40-mindmap-drag.md | 脑图拖动、持久化 |
+| TC-MAP-12 | 删除父节点后子节点上移 | P1 |  | cases/TC-40-mindmap-drag.md | 脑图拖动、删除撤销 |
+| TC-MAP-13 | 回忆模式下拖动不揭开内容 | P2 |  | cases/TC-40-mindmap-drag.md | 回忆模式 |
+| TC-MAP-14 | 夜读下拖动 | P2 |  | cases/TC-40-mindmap-drag.md | 夜读 |
+
+TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。
 
 冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-PERSIST-01。
 

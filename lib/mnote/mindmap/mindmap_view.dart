@@ -303,9 +303,16 @@ class _Node extends StatelessWidget {
         data: card.id,
         feedback: Material(
           color: Colors.transparent,
-          child: Opacity(opacity: 0.85, child: _feedback(context)),
+          // In recall mode the dragged copy must not reveal the content.
+          child: Opacity(
+            opacity: 0.85,
+            child: _feedback(context, masked: isMasked),
+          ),
         ),
-        childWhenDragging: Opacity(opacity: 0.35, child: node(false)),
+        childWhenDragging: Opacity(
+          opacity: 0.35,
+          child: isMasked ? masked() : node(false),
+        ),
         child: GestureDetector(
           key: ValueKey('mindmap-node-${card.id}'),
           onTap: () =>
@@ -316,7 +323,7 @@ class _Node extends StatelessWidget {
     );
   }
 
-  Widget _feedback(BuildContext context) {
+  Widget _feedback(BuildContext context, {bool masked = false}) {
     final p = MnotePalette.of(context);
     return Container(
       constraints: const BoxConstraints(maxWidth: 220),
@@ -327,7 +334,17 @@ class _Node extends StatelessWidget {
         border: Border.all(color: p.accent, width: 1.5),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12)],
       ),
-      child: Text(card.title, style: serifStyle(p.ink, size: 14)),
+      child: masked
+          ? Container(
+              key: const ValueKey('mindmap-drag-masked'),
+              width: 140,
+              height: 10,
+              decoration: BoxDecoration(
+                color: p.line,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            )
+          : Text(card.title, style: serifStyle(p.ink, size: 14)),
     );
   }
 }
