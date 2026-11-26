@@ -1,6 +1,6 @@
 # 用例清单
 
-优先级：P0 必须通过才能发给用户；P1 重要；P2 次要。`冒烟` = 每次编译都要跑。
+优先级：P0 必须通过才能发给用户；P1 重要；P2 次要。`冒烟` = 每次编译都要跑。`人工` = adb 无法可靠模拟，测试 Agent 不执行，由人按 MANUAL_CHECKS.md 检查。
 
 | ID | 名称 | 优先级 | 冒烟 | 文件 | 覆盖 |
 |---|---|---|---|---|---|
@@ -35,7 +35,7 @@
 | TC-UI-03 | 模式切换 | P2 |  | cases/TC-20-studyset-reader-excerpt.md | 四模式工具条 |
 | TC-INK-01 | 进入手写模式 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 1 |
 | TC-INK-02 | 笔写、手指滚动 | P0 | ✓ | cases/TC-30-ink-export.md | UC-02 步骤 2–3 |
-| TC-INK-03 | 缩放后笔迹位置不变 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 4 |
+| TC-INK-03 | 缩放后笔迹位置不变（人工） | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 4 |
 | TC-INK-04 | 荧光笔不盖住文字 | P1 |  | cases/TC-30-ink-export.md | UC-02 步骤 5、B4 |
 | TC-INK-05 | 撤销 / 重做 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 6 |
 | TC-INK-06 | 橡皮 | P0 |  | cases/TC-30-ink-export.md | UC-02 步骤 7 |

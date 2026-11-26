@@ -15,6 +15,7 @@
     reference/             参考截图（期望界面大致长这样）
     RESULTS_TEMPLATE.md    结果报告模板
     KNOWN_ISSUES.md 已知问题和不修复项（遇到不必报告）
+    MANUAL_CHECKS.md 人工检查（真实笔 / 手指），测试 Agent 不执行
 ```
 
 ## 1. 跑哪些用例
@@ -70,6 +71,7 @@ adb shell input swipe X1 Y1 X2 Y2 600         # 拖动（拖选区手柄、拖�
 - **跳过**：设备不支持或本次不在范围内，写明原因。
 - 用例写得不清楚、或期望本身看起来不合理时，照实记录「用例问题」，不要自己改判。
 - `KNOWN_ISSUES.md` 里「不修复」的问题再遇到时不必报告。
+- 标 `人工` 的用例（如 TC-INK-03）和 `MANUAL_CHECKS.md` 由人执行，测试 Agent 不执行，也不计入「跳过」。
 
 ## 6. 报告
 复制 `RESULTS_TEMPLATE.md` 填写，和截图、日志放在同一个文件夹里交回。

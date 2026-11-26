@@ -19,6 +19,7 @@
       reference/            参考截图
       RESULTS_TEMPLATE.md   结果报告模板
       KNOWN_ISSUES.md       已知问题和不修复项（遇到不必报告）
+      MANUAL_CHECKS.md      人工检查（真实笔 / 手指），测试 Agent 不执行
     results/                **测试结果放这里**（见下）
 ```
 
