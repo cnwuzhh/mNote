@@ -59,6 +59,8 @@ class ModeToolbar extends StatelessWidget {
     required this.tool,
     required this.onTool,
     this.ink,
+    this.onRevealAll,
+    this.onRemask,
   });
 
   final WorkMode mode;
@@ -68,6 +70,9 @@ class ModeToolbar extends StatelessWidget {
   final ExcerptTool tool;
   final ValueChanged<ExcerptTool> onTool;
   final InkControls? ink;
+
+  /// Recall mode actions.
+  final VoidCallback? onRevealAll, onRemask;
 
   @override
   Widget build(BuildContext context) {
@@ -88,54 +93,45 @@ class ModeToolbar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (mode == WorkMode.handwrite)
-                // The handwrite tool group is wide: show the modes as one chip.
-                PopupMenuButton<WorkMode>(
-                  key: const ValueKey('mode-menu'),
-                  tooltip: '切换模式',
-                  initialValue: mode,
-                  onSelected: onMode,
-                  itemBuilder: (_) => [
-                    for (final m in WorkMode.values)
-                      PopupMenuItem(
-                        key: ValueKey('mode-menu-${m.name}'),
-                        value: m,
-                        child: Text(m.label),
-                      ),
-                  ],
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+              // Modes as one chip (layout v2): leaves room for the tools.
+              PopupMenuButton<WorkMode>(
+                key: const ValueKey('mode-menu'),
+                tooltip: '切换模式',
+                initialValue: mode,
+                onSelected: onMode,
+                itemBuilder: (_) => [
+                  for (final m in WorkMode.values)
+                    PopupMenuItem(
+                      key: ValueKey('mode-menu-${m.name}'),
+                      value: m,
+                      child: Text(m.label),
                     ),
-                    decoration: BoxDecoration(
-                      color: p.ink,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          mode.label,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: p.paper,
-                            fontWeight: FontWeight.w600,
-                          ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: p.ink,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        mode.label,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: p.paper,
+                          fontWeight: FontWeight.w600,
                         ),
-                        Icon(Icons.arrow_drop_down, size: 18, color: p.paper),
-                      ],
-                    ),
+                      ),
+                      Icon(Icons.arrow_drop_down, size: 18, color: p.paper),
+                    ],
                   ),
-                )
-              else
-                for (final m in WorkMode.values)
-                  _Seg(
-                    key: ValueKey('mode-${m.name}'),
-                    label: m.label,
-                    selected: m == mode,
-                    onTap: () => onMode(m),
-                  ),
+                ),
+              ),
               Container(
                 width: 1,
                 height: 26,
@@ -283,18 +279,45 @@ class ModeToolbar extends StatelessWidget {
           ),
         ];
       case WorkMode.organize:
-        return _soon(p, const [
-          (Icons.open_with, '拖拽'),
-          (Icons.merge_type, '合并'),
-          (Icons.format_list_bulleted, '大纲'),
-          (Icons.auto_awesome_mosaic_outlined, '自动排版'),
-        ]);
+        return [
+          // Dragging cards in the mind map always works in this mode.
+          const _Tool(
+            key: ValueKey('org-drag'),
+            icon: Icons.open_with,
+            label: '拖拽',
+            selected: true,
+            onTap: _noop,
+          ),
+          ..._soon(p, const [
+            (Icons.merge_type, '合并'),
+            (Icons.format_list_bulleted, '大纲'),
+            (Icons.auto_awesome_mosaic_outlined, '自动排版'),
+          ]),
+        ];
       case WorkMode.recall:
-        return _soon(p, const [
-          (Icons.visibility_off_outlined, '遮挡'),
-          (Icons.visibility_outlined, '揭示'),
-          (Icons.event_repeat, '加入复习'),
-        ]);
+        return [
+          const _Tool(
+            key: ValueKey('recall-mask'),
+            icon: Icons.horizontal_rule,
+            label: '遮挡',
+            selected: true,
+            onTap: _noop,
+          ),
+          _Tool(
+            key: const ValueKey('recall-reveal-all'),
+            icon: Icons.visibility_outlined,
+            label: '全部揭示',
+            selected: false,
+            onTap: onRevealAll,
+          ),
+          _Tool(
+            key: const ValueKey('recall-remask'),
+            icon: Icons.add,
+            label: '重新遮挡',
+            selected: false,
+            onTap: onRemask,
+          ),
+        ];
     }
   }
 
@@ -397,3 +420,5 @@ class _Tool extends StatelessWidget {
     return iconOnly ? Tooltip(message: label, child: button) : button;
   }
 }
+
+void _noop() {}

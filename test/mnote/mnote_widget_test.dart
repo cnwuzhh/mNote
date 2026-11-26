@@ -151,8 +151,10 @@ void main() {
     expect(find.text('框选'), findsOneWidget);
     expect(find.byTooltip('钢笔'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
-    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('mode-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mode-menu-handwrite')).last);
+    await tester.pumpAndSettle();
     expect(find.text('框选'), findsNothing);
     for (final t in ['钢笔', '荧光笔', '橡皮', '套索', '撤销', '重做', '手指书写：关']) {
       expect(find.byTooltip(t), findsOneWidget, reason: t);
@@ -164,6 +166,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('mode-menu-recall')));
     await tester.pumpAndSettle();
-    expect(find.text('揭示'), findsOneWidget);
+    expect(find.text('全部揭示'), findsOneWidget);
+    expect(find.text('重新遮挡'), findsOneWidget);
   });
 }

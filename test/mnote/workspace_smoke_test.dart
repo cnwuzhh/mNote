@@ -8,11 +8,12 @@ import 'package:saber/mnote/reader/workspace_page.dart';
 import 'package:saber/mnote/store/study_store.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
 
-/// Renders the full workspace with the 33-page sample paper at the tablet's
-/// landscape size and checks the three columns, rail card placement and the
-/// mind map, without layout or paint exceptions.
+/// Layout v2 (design/layout-v2, option D) end to end on the real paper at the
+/// tablet's landscape size: reading with the edge rail, the cards and mind-map
+/// overlays (the PDF never moves), hiding the rail, organize mode with the
+/// source sheet, and recall mode — without layout or paint exceptions.
 void main() {
-  testWidgets('workspace renders the sample paper with a card', (tester) async {
+  testWidgets('layout v2: reading, overlays, organize, recall', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -34,7 +35,7 @@ void main() {
     });
     addTearDown(() => dir.deleteSync(recursive: true));
 
-    // A card on page 1, left column (abstract), as created in UC-01 step 5.
+    // A card on page 1 (abstract), as created in UC-01 step 5.
     store.addCard(
       set,
       MCard(
@@ -55,53 +56,152 @@ void main() {
         ),
       ),
     );
-    // Let pdfium open the file and lay out pages.
-    for (var i = 0; i < 30; i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 100)),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      if (find.textContaining('/ 33 页').evaluate().isNotEmpty &&
-          find.byKey(const ValueKey('rail-c1')).evaluate().isNotEmpty) {
-        break;
+    Future<void> settle([int n = 6]) async {
+      for (var i = 0; i < n; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 80)),
+        );
+        await tester.pump(const Duration(milliseconds: 60));
       }
     }
 
+    Future<void> selectMode(String name) async {
+      await tester.tap(find.byKey(const ValueKey('mode-menu')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.tap(find.byKey(ValueKey('mode-menu-$name')).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await settle(3);
+    }
+
+    // Let pdfium open the file and lay out pages.
+    for (var i = 0; i < 30; i++) {
+      await settle(1);
+      if (find.byKey(const ValueKey('rail-c1')).evaluate().isNotEmpty) break;
+    }
+
+    // ---- reading: PDF fills the width, narrow rail with one bar ----
     expect(find.textContaining('第 1 / 33 页'), findsOneWidget);
+    final pdfRect = tester.getRect(find.byType(PdfViewer));
     expect(
-      find.text('Agent 决策失败，1 张卡片'),
-      findsOneWidget,
-      reason: 'mind map header',
+      pdfRect.width,
+      greaterThan(1200),
+      reason: 'PDF nearly full width (was ~640 with three columns)',
     );
+    expect(find.byKey(const ValueKey('rail-count')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('rail-c1')),
-      findsOneWidget,
-      reason: 'card placed in the margin rail',
+      tester.widget<Text>(find.byKey(const ValueKey('rail-count'))).data,
+      '1',
     );
+    final bar = tester.getRect(find.byKey(const ValueKey('rail-c1')));
     expect(
-      find.text('System One 模型'),
-      findsWidgets,
-      reason: 'rail card + mind-map node',
+      bar.left,
+      greaterThan(1236),
+      reason: 'bar is on the 44 px edge rail',
     );
-    expect(find.text('摘录'), findsWidgets, reason: 'bottom mode toolbar');
+    expect(bar.top, greaterThan(56));
+    expect(bar.top, lessThan(800));
+    expect(find.text('摘录'), findsOneWidget, reason: 'mode chip');
 
-    // The rail card sits at (or just below) the height of its source text.
-    final railTop = tester.getTopLeft(find.byKey(const ValueKey('rail-c1'))).dy;
-    expect(railTop, greaterThan(56), reason: 'below the top bar');
-    expect(railTop, lessThan(800));
+    // ---- cards overlay: covers the PDF, which stays where it is ----
+    await tester.tap(find.byKey(const ValueKey('rail-cards')));
+    await settle(3);
+    expect(find.byKey(const ValueKey('panel-cards')), findsOneWidget);
+    expect(find.byKey(const ValueKey('panel-card-c1')), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(PdfViewer)),
+      pdfRect,
+      reason: 'PDF does not move',
+    );
+    // The card sits at the height of its bar (same source).
+    final cardTop = tester
+        .getTopLeft(find.byKey(const ValueKey('panel-card-c1')))
+        .dy;
+    expect((cardTop - bar.top).abs(), lessThan(40));
 
-    // Collapse and expand the mind map.
-    await tester.tap(find.byKey(const ValueKey('map-collapse')));
-    await tester.pump();
-    expect(find.byKey(const ValueKey('map-expand')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('map-expand')));
-    await tester.pump();
-    expect(find.text('Agent 决策失败，1 张卡片'), findsOneWidget);
+    // Switch to the mind map inside the overlay.
+    await tester.tap(find.byKey(const ValueKey('panel-tab-map')));
+    await settle(3);
+    expect(find.byKey(const ValueKey('panel-map')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mindmap-root')), findsOneWidget);
+    expect(tester.getRect(find.byType(PdfViewer)), pdfRect);
+    // Tap outside closes it.
+    await tester.tapAt(const Offset(150, 400));
+    await settle(2);
+    expect(find.byKey(const ValueKey('panel-map')), findsNothing);
 
-    // Switch to box-select: the capture layer appears.
+    // ---- hide / show the rail ----
+    await tester.tap(find.byKey(const ValueKey('rail-hide')));
+    await settle(2);
+    expect(find.byKey(const ValueKey('rail-count')), findsNothing);
+    expect(find.byKey(const ValueKey('rail-handle')), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(PdfViewer)),
+      pdfRect,
+      reason: 'PDF keeps its layout',
+    );
+    await tester.tap(find.byKey(const ValueKey('rail-handle')));
+    await settle(2);
+    expect(find.byKey(const ValueKey('rail-count')), findsOneWidget);
+
+    // ---- box select still works in the new layout ----
     await tester.tap(find.byKey(const ValueKey('tool-box')));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const ValueKey('box-select-layer')), findsOneWidget);
+    // The hint floats above the toolbar, which stays usable.
+    final hint = tester.getRect(find.text('在页面上拖出一个矩形来截取区域'));
+    final chip = tester.getRect(find.byKey(const ValueKey('mode-menu')));
+    expect(
+      hint.bottom,
+      lessThanOrEqualTo(chip.top),
+      reason: 'hint does not cover the toolbar',
+    );
+    await tester.tap(find.byKey(const ValueKey('tool-text')));
+    await tester.pump();
+
+    // ---- organize: mind map fills the screen; source sheet ----
+    await selectMode('organize');
+    expect(find.byKey(const ValueKey('map-view-organize')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('rail-count')),
+      findsNothing,
+      reason: 'no rail outside reading',
+    );
+    await tester.tap(find.byKey(const ValueKey('mindmap-jump-c1')));
+    await settle(8);
+    expect(find.byKey(const ValueKey('source-sheet')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('source-zoom')),
+      findsOneWidget,
+      reason: 'zoomed paragraph rendered',
+    );
+    // "去阅读" goes back to the reader.
+    await tester.tap(find.byKey(const ValueKey('source-read')));
+    await settle(6);
+    expect(find.byKey(const ValueKey('map-view-organize')), findsNothing);
+    expect(find.byKey(const ValueKey('rail-count')), findsOneWidget);
+
+    // ---- recall: contents hidden until tapped ----
+    await selectMode('recall');
+    expect(find.byKey(const ValueKey('map-view-recall')), findsOneWidget);
+    expect(
+      find.text('System One 模型'),
+      findsNothing,
+      reason: 'card title hidden',
+    );
+    expect(find.textContaining('未揭开 1 张'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('mindmap-node-c1')));
+    await tester.pump();
+    expect(find.text('System One 模型'), findsOneWidget, reason: 'revealed');
+    expect(find.text('已全部揭开'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('recall-remask')));
+    await tester.pump();
+    expect(find.text('System One 模型'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('recall-reveal-all')));
+    await tester.pump();
+    expect(find.text('System One 模型'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

@@ -14,18 +14,26 @@ import 'package:saber/mnote/ink/ink_paint.dart';
 import 'package:saber/mnote/mindmap/mindmap_view.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/model/text_clean.dart';
+import 'package:saber/mnote/reader/edge_rail.dart';
 import 'package:saber/mnote/reader/excerpt_menu.dart';
-import 'package:saber/mnote/reader/margin_rail.dart';
 import 'package:saber/mnote/reader/mode_toolbar.dart';
 import 'package:saber/mnote/reader/pdf_geometry.dart';
 import 'package:saber/mnote/reader/reader_search.dart';
+import 'package:saber/mnote/reader/side_panels.dart';
+import 'package:saber/mnote/reader/source_sheet.dart';
 import 'package:saber/mnote/store/study_store.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
 
-const _railWidth = 200.0;
-const _mapMin = 300.0, _mapMax = 560.0, _mapCollapsed = 44.0;
+const _railWidth = edgeRailWidth;
+const _cardsPanelWidth = 330.0;
 
-/// Three-column study workspace: PDF | margin rail | mind map.
+/// Study workspace, layout v2 (design/layout-v2, option D):
+/// * reading (excerpt / handwrite): the PDF fills the width; a narrow edge
+///   rail shows where the cards are; the cards list and the mind map open as
+///   overlays on top of the PDF, which never re-lays out;
+/// * organize: the mind map fills the screen; "回到原文" opens a side sheet
+///   with the zoomed source paragraph;
+/// * recall: the mind map with card contents hidden until tapped.
 class WorkspacePage extends StatefulWidget {
   const new({
     super.key,
@@ -52,12 +60,25 @@ class _WorkspacePageState extends State<WorkspacePage>
   ExcerptColor color = ExcerptColor.definition;
   ExcerptTool tool = ExcerptTool.text;
 
-  /// null = automatic (open on wide screens, collapsed when narrow, e.g.
-  /// portrait); set once the user toggles it.
-  bool? mapOpenChoice;
-  var _wide = true;
-  bool get mapOpen => mapOpenChoice ?? _wide;
-  double mapWidth = 424;
+  /// Open overlay in reading modes: 'cards', 'map' or null.
+  String? panel;
+
+  /// Edge rail tucked away into a small handle.
+  var railHidden = false;
+
+  /// Organize mode: card whose source is shown in the side sheet.
+  MCard? sourceCard;
+
+  /// Recall mode: ids of cards still hidden.
+  Set<String> masked = {};
+
+  /// "已加入：…" feedback after an excerpt, near where it was made.
+  ({MCard card, Offset at})? added;
+  Timer? _addedTimer;
+  Offset? _menuAnchor;
+  final panelCardKeys = <String, GlobalKey>{};
+
+  bool get reading => mode == WorkMode.excerpt || mode == WorkMode.handwrite;
   var searchOpen = false;
 
   String? selectedId;
@@ -116,6 +137,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     controller.removeListener(_onViewChanged);
     _removeSearchListener?.call();
     searcher.dispose();
+    _addedTimer?.cancel();
     ink?.history.removeListener(_onViewChanged);
     if (_inkSave?.isActive ?? false) {
       _inkSave!.cancel();
@@ -306,8 +328,10 @@ class _WorkspacePageState extends State<WorkspacePage>
       image: name,
     );
     store.addCard(set, card);
+    final at = _lassoBoundsInViewer()?.topLeft;
     lassoSel = null;
     _repaintPages();
+    _showAdded(card, at);
     _flyIn(card);
   }
 
@@ -376,6 +400,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     PdfViewerContextMenuBuilderParams params,
   ) {
     final d = params.textSelectionDelegate;
+    _menuAnchor = params.anchorA;
     if (!params.isTextSelectionEnabled || !d.hasSelectedText) return null;
     if (mode != WorkMode.excerpt) return null;
     final menu = ExcerptMenu(
@@ -426,7 +451,26 @@ class _WorkspacePageState extends State<WorkspacePage>
     store.addCard(set, card);
     await d.clearTextSelection();
     _repaintPages();
-    if (!card.highlightOnly) _flyIn(card);
+    if (!card.highlightOnly) {
+      _showAdded(card, _menuAnchor);
+      _flyIn(card);
+    }
+  }
+
+  void _showAdded(MCard card, Offset? at) {
+    _addedTimer?.cancel();
+    setState(() => added = (card: card, at: at ?? const Offset(120, 120)));
+    _addedTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => added = null);
+    });
+  }
+
+  void _undoAdded() {
+    final a = added;
+    if (a == null) return;
+    store.deleteCard(set, a.card);
+    setState(() => added = null);
+    _repaintPages();
   }
 
   Future<void> _finishBox() async {
@@ -479,11 +523,12 @@ class _WorkspacePageState extends State<WorkspacePage>
     );
     store.addCard(set, card);
     _repaintPages();
+    _showAdded(card, boxStart ?? a);
     _flyIn(card);
   }
 
-  /// Animates a ghost card from the margin rail into its mind-map node,
-  /// then flashes the node.
+  /// Animates a ghost card from the excerpt's source text into its bar on the
+  /// edge rail (or, with the map overlay open, into its mind-map node).
   void _flyIn(MCard card) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -496,8 +541,22 @@ class _WorkspacePageState extends State<WorkspacePage>
         return tl & box.size;
       }
 
-      final start = rectOf(railKeys[card.id]);
-      final end = mapOpen ? rectOf(nodeKeys[card.id]) : null;
+      final readerBox =
+          readerKey.currentContext?.findRenderObject() as RenderBox?;
+      final src = cardBoundsInViewer(controller, card);
+      final start = (readerBox == null || src == null || overlayBox == null)
+          ? null
+          : Rect.fromLTWH(
+              readerBox.localToGlobal(src.topLeft, ancestor: overlayBox).dx,
+              readerBox.localToGlobal(src.topLeft, ancestor: overlayBox).dy,
+              src.width.clamp(40.0, 260.0),
+              src.height.clamp(20.0, 80.0),
+            );
+      final end = panel == 'map'
+          ? rectOf(nodeKeys[card.id])
+          : railHidden
+          ? null
+          : rectOf(railKeys[card.id]);
       if (start == null || end == null) {
         _flash(card.id);
         return;
@@ -562,6 +621,32 @@ class _WorkspacePageState extends State<WorkspacePage>
     Timer(const Duration(milliseconds: 900), () {
       if (mounted && flashNodeId == id) setState(() => flashNodeId = null);
     });
+  }
+
+  /// Organize mode: show the source next to the mind map instead of leaving it.
+  void _showSource(MCard card) => setState(() {
+    selectedId = card.id;
+    sourceCard = card;
+  });
+
+  Future<void> _readAt(MCard card) async {
+    setState(() {
+      mode = WorkMode.excerpt;
+      sourceCard = null;
+      panel = null;
+    });
+    await WidgetsBinding.instance.endOfFrame;
+    await _jumpTo(card);
+  }
+
+  void _setMode(WorkMode m) {
+    setState(() {
+      mode = m;
+      panel = null;
+      sourceCard = null;
+      if (m == WorkMode.recall) masked = set.mapCards.map((c) => c.id).toSet();
+    });
+    if (m != WorkMode.handwrite && lassoSel != null) _clearLasso();
   }
 
   Future<void> _jumpTo(MCard card) async {
@@ -639,6 +724,8 @@ class _WorkspacePageState extends State<WorkspacePage>
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: _snackMargin,
           content: Text('已删除「${card.title}」及其高亮'),
           action: SnackBarAction(
             label: '撤销',
@@ -651,11 +738,20 @@ class _WorkspacePageState extends State<WorkspacePage>
       );
   }
 
+  /// Hints float above the bottom toolbar instead of covering it.
+  EdgeInsets get _snackMargin =>
+      const EdgeInsets.fromLTRB(16, 0, _railWidth + 16, 84);
+
   void _toast(String msg) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+        SnackBar(
+          content: Text(msg),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: _snackMargin,
+        ),
       );
   }
 
@@ -731,7 +827,6 @@ class _WorkspacePageState extends State<WorkspacePage>
   @override
   Widget build(BuildContext context) {
     final p = MnotePalette.of(context);
-    _wide = MediaQuery.sizeOf(context).width >= 1000;
     return Scaffold(
       backgroundColor: p.board,
       body: SafeArea(
@@ -740,13 +835,9 @@ class _WorkspacePageState extends State<WorkspacePage>
             _topBar(p),
             Divider(height: 1, color: p.line),
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _reader(p)),
-                  _splitter(p),
-                  _mapPanel(p),
-                ],
+              child: LayoutBuilder(
+                builder: (context, cons) =>
+                    _body(p, cons.maxWidth, cons.maxHeight),
               ),
             ),
           ],
@@ -781,6 +872,7 @@ class _WorkspacePageState extends State<WorkspacePage>
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Text('/', style: TextStyle(color: p.line, fontSize: 18)),
     );
+    final hiddenCount = masked.length;
     return Container(
       color: p.paper,
       height: 56,
@@ -799,42 +891,60 @@ class _WorkspacePageState extends State<WorkspacePage>
                 children: [
                   crumb('学习集', set.name),
                   sep(),
-                  crumb('文档', doc.title),
-                  sep(),
-                  crumb('脑图', set.name),
+                  if (reading)
+                    crumb('文档', doc.title)
+                  else
+                    crumb('脑图', set.name),
                 ],
               ),
             ),
           ),
-          Text(
-            total == 0
-                ? ''
-                : '第 $page / $total 页，已读 ${(doc.progress * 100).round()}%',
-            key: const ValueKey('page-indicator'),
-            style: TextStyle(fontSize: 14, color: p.ink2),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            key: const ValueKey('btn-outline'),
-            tooltip: '目录',
-            icon: Icon(Icons.toc, color: p.ink2),
-            onPressed: _showOutline,
-          ),
-          IconButton(
-            key: const ValueKey('btn-search'),
-            tooltip: '搜索',
-            icon: Icon(Icons.search, color: searchOpen ? p.accent : p.ink2),
-            onPressed: () => setState(() {
-              searchOpen = !searchOpen;
-              if (!searchOpen) searcher.resetTextSearch();
-            }),
-          ),
-          IconButton(
-            key: const ValueKey('btn-export'),
-            tooltip: '导出',
-            icon: Icon(Icons.ios_share, color: p.ink2),
-            onPressed: _export,
-          ),
+          if (reading) ...[
+            Text(
+              total == 0
+                  ? ''
+                  : '第 $page / $total 页，已读 ${(doc.progress * 100).round()}%',
+              key: const ValueKey('page-indicator'),
+              style: TextStyle(fontSize: 14, color: p.ink2),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              key: const ValueKey('btn-outline'),
+              tooltip: '目录',
+              icon: Icon(Icons.toc, color: p.ink2),
+              onPressed: _showOutline,
+            ),
+            IconButton(
+              key: const ValueKey('btn-search'),
+              tooltip: '搜索',
+              icon: Icon(Icons.search, color: searchOpen ? p.accent : p.ink2),
+              onPressed: () => setState(() {
+                searchOpen = !searchOpen;
+                if (!searchOpen) searcher.resetTextSearch();
+              }),
+            ),
+            IconButton(
+              key: const ValueKey('btn-export'),
+              tooltip: '导出',
+              icon: Icon(Icons.ios_share, color: p.ink2),
+              onPressed: _export,
+            ),
+          ],
+          if (mode == WorkMode.recall) ...[
+            Text(
+              hiddenCount == 0 ? '已全部揭开' : '点灰条回忆后揭开，未揭开 $hiddenCount 张',
+              key: const ValueKey('recall-status'),
+              style: TextStyle(fontSize: 14, color: p.ink2),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              key: const ValueKey('btn-start-review'),
+              style: FilledButton.styleFrom(backgroundColor: p.accent),
+              onPressed: () => _toast('复习（间隔重复）将在后续版本提供'),
+              child: Text('开始复习（${set.mapCards.length}）'),
+            ),
+            const SizedBox(width: 8),
+          ],
           IconButton(
             key: const ValueKey('btn-night'),
             tooltip: p.dark ? '日间' : '夜读',
@@ -854,232 +964,380 @@ class _WorkspacePageState extends State<WorkspacePage>
     );
   }
 
-  Widget _reader(MnotePalette p) {
+  /// Every map card of this document with its source rect in the reader.
+  List<(MCard, Rect)> _positions() {
+    if (!hasPageLayout(controller)) return const [];
+    return [
+      for (final c in set.mapCards.where((c) => c.docId == doc.id))
+        if (cardBoundsInViewer(controller, c) case final r?) (c, r),
+    ];
+  }
+
+  Widget _body(MnotePalette p, double w, double h) {
     final file = store.docFile(set, doc);
-    return LayoutBuilder(
-      builder: (context, cons) {
-        final viewW = cons.maxWidth - _railWidth;
-        final placed = hasPageLayout(controller)
-            ? layoutMarginCards(
-                controller,
-                set.mapCards.where((c) => c.docId == doc.id),
-                viewHeight: cons.maxHeight,
-              )
-            : const <PlacedCard>[];
-        return Stack(
-          key: readerKey,
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: viewW,
-              child: ColoredBox(
-                color: p.gap,
-                child: PdfViewer.file(
-                  file.path,
-                  controller: controller,
-                  params: PdfViewerParams(
-                    backgroundColor: p.gap,
-                    pageImageColorFilter: p.dark
-                        ? const ColorFilter.matrix([
-                            -0.86, 0, 0, 0, 236, //
-                            0, -0.86, 0, 0, 229,
-                            0, 0, -0.86, 0, 216,
-                            0, 0, 0, 1, 0,
-                          ])
-                        : null,
-                    textSelectionParams: PdfTextSelectionParams(
-                      enabled:
-                          mode == WorkMode.excerpt && tool != ExcerptTool.box,
-                    ),
-                    buildContextMenu: _buildMenu,
-                    pagePaintCallbacks: [
-                      _paintHighlights,
-                      searcher.pageTextMatchPaintCallback,
-                    ],
-                    onViewerReady: _onViewerReady,
-                    onPageChanged: _onPageChanged,
-                  ),
-                ),
-              ),
-            ),
-            // Margin rail.
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: _railWidth,
-              child: ClipRect(
+    final viewW = w - _railWidth;
+    final positions = _positions();
+    final marks = [
+      for (final (c, r) in positions)
+        if (r.bottom > 0 && r.top < h)
+          RailMark(c, r.top.clamp(0.0, h), r.height.clamp(6.0, 120.0)),
+    ];
+    final mapW = (w * 0.48).clamp(380.0, 680.0);
+    final mapCount = set.mapCards.length;
+
+    return Stack(
+      children: [
+        // ---- reader (kept mounted in every mode, so its position is kept) ----
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: viewW,
+          child: Stack(
+            key: readerKey,
+            children: [
+              Positioned.fill(
                 child: ColoredBox(
-                  color: p.paper,
-                  child: Stack(
-                    children: [
-                      if (placed.isEmpty)
-                        Positioned(
-                          left: 14,
-                          right: 14,
-                          top: 20,
-                          child: Text(
-                            '在左侧选中文字，选颜色后「摘录为卡片」，卡片会停在原文同一高度。',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: p.ink3,
-                              height: 1.6,
-                            ),
-                          ),
-                        ),
-                      for (final pc in placed)
-                        Positioned(
-                          key: ValueKey('rail-${pc.card.id}'),
-                          left: 10,
-                          right: 10,
-                          top: pc.top,
-                          child: MarginCardTile(
-                            key: railKeys.putIfAbsent(
-                              pc.card.id,
-                              GlobalKey.new,
-                            ),
-                            card: pc.card,
-                            selected: pc.card.id == selectedId,
-                            onTap: () => _openCard(pc.card),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Lead lines across viewer and rail.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: LeadLinePainter(
-                    placed: placed,
-                    railLeft: viewW + 10,
-                    dark: p.dark,
-                  ),
-                ),
-              ),
-            ),
-            if (mode == WorkMode.handwrite && ink != null)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: viewW,
-                child: InkInputLayer(
-                  key: const ValueKey('ink-layer'),
-                  controller: controller,
-                  ink: ink!,
-                  tool: inkTool,
-                  color: inkTool == InkTool.highlighter
-                      ? highlighterColor
-                      : penColor,
-                  width: inkWidth,
-                  fingerDrawing: store.fingerDrawing,
-                  dark: p.dark,
-                  onChanged: _inkChanged,
-                  onLasso: _onLasso,
-                ),
-              ),
-            if (lassoSel != null) ..._lassoMenu(p, viewW),
-            if (mode == WorkMode.excerpt && tool == ExcerptTool.box)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: viewW,
-                child: GestureDetector(
-                  key: const ValueKey('box-select-layer'),
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (d) =>
-                      setState(() => boxStart = boxEnd = d.localPosition),
-                  onPanUpdate: (d) => setState(() => boxEnd = d.localPosition),
-                  onPanEnd: (_) => _finishBox(),
-                  child: CustomPaint(
-                    painter: _BoxPainter(
-                      boxStart,
-                      boxEnd,
-                      color.ink(dark: p.dark),
+                  color: p.gap,
+                  child: PdfViewer.file(
+                    file.path,
+                    controller: controller,
+                    params: PdfViewerParams(
+                      backgroundColor: p.gap,
+                      pageImageColorFilter: p.dark
+                          ? const ColorFilter.matrix([
+                              -0.86, 0, 0, 0, 236, //
+                              0, -0.86, 0, 0, 229,
+                              0, 0, -0.86, 0, 216,
+                              0, 0, 0, 1, 0,
+                            ])
+                          : null,
+                      textSelectionParams: PdfTextSelectionParams(
+                        enabled:
+                            mode == WorkMode.excerpt && tool != ExcerptTool.box,
+                      ),
+                      buildContextMenu: _buildMenu,
+                      pagePaintCallbacks: [
+                        _paintHighlights,
+                        searcher.pageTextMatchPaintCallback,
+                      ],
+                      onViewerReady: _onViewerReady,
+                      onPageChanged: _onPageChanged,
                     ),
                   ),
                 ),
               ),
-            if (searchOpen)
-              Positioned(
-                top: 12,
-                right: _railWidth + 12,
-                width: 360,
-                child: ReaderSearchPanel(
-                  searcher: searcher,
-                  onClose: () => setState(() {
-                    searchOpen = false;
-                    searcher.resetTextSearch();
-                  }),
+              if (mode == WorkMode.handwrite && ink != null)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: viewW,
+                  child: InkInputLayer(
+                    key: const ValueKey('ink-layer'),
+                    controller: controller,
+                    ink: ink!,
+                    tool: inkTool,
+                    color: inkTool == InkTool.highlighter
+                        ? highlighterColor
+                        : penColor,
+                    width: inkWidth,
+                    fingerDrawing: store.fingerDrawing,
+                    dark: p.dark,
+                    onChanged: _inkChanged,
+                    onLasso: _onLasso,
+                  ),
                 ),
-              ),
-            Positioned(
-              left: 16,
-              bottom: 16,
-              right: _railWidth + 16,
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: ModeToolbar(
-                  ink: ink == null
-                      ? null
-                      : InkControls(
-                          tool: inkTool,
-                          onTool: (t) {
-                            setState(() => inkTool = t);
-                            if (lassoSel != null) _clearLasso();
-                          },
-                          color: inkTool == InkTool.highlighter
-                              ? highlighterColor
-                              : penColor,
-                          onColor: (c) => setState(() {
-                            if (inkTool == InkTool.highlighter) {
-                              highlighterColor = c;
-                            } else {
-                              penColor = c;
-                            }
-                          }),
-                          width: inkWidth,
-                          onWidth: (w) => setState(() => inkWidth = w),
-                          canUndo: ink!.history.canUndo,
-                          canRedo: ink!.history.canRedo,
-                          onUndo: () {
-                            if (ink!.undo()) _inkChanged();
-                          },
-                          onRedo: () {
-                            if (ink!.redo()) _inkChanged();
-                          },
-                          fingerDrawing: store.fingerDrawing,
-                          onFingerDrawing: (v) =>
-                              setState(() => store.fingerDrawing = v),
-                        ),
-                  mode: mode,
-                  onMode: (m) {
-                    setState(() => mode = m);
-                    if (m == WorkMode.organize || m == WorkMode.recall) {
-                      _toast('「${m.label}」模式将在后续版本提供');
-                    }
-                    if (m != WorkMode.handwrite && lassoSel != null)
-                      _clearLasso();
-                  },
-                  color: color,
-                  onColor: (c) => setState(() => color = c),
-                  tool: tool,
-                  onTool: (t) {
-                    setState(() => tool = t);
-                    if (t == ExcerptTool.box) _toast('在页面上拖出一个矩形来截取区域');
-                  },
+              if (lassoSel != null) ..._lassoMenu(p, viewW),
+              if (mode == WorkMode.excerpt && tool == ExcerptTool.box)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: viewW,
+                  child: GestureDetector(
+                    key: const ValueKey('box-select-layer'),
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (d) =>
+                        setState(() => boxStart = boxEnd = d.localPosition),
+                    onPanUpdate: (d) =>
+                        setState(() => boxEnd = d.localPosition),
+                    onPanEnd: (_) => _finishBox(),
+                    child: CustomPaint(
+                      painter: _BoxPainter(
+                        boxStart,
+                        boxEnd,
+                        color.ink(dark: p.dark),
+                      ),
+                    ),
+                  ),
                 ),
+
+              if (searchOpen && reading)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  width: 360,
+                  child: ReaderSearchPanel(
+                    searcher: searcher,
+                    onClose: () => setState(() {
+                      searchOpen = false;
+                      searcher.resetTextSearch();
+                    }),
+                  ),
+                ),
+              if (added != null && reading) _addedChip(p, viewW),
+            ],
+          ),
+        ),
+
+        // ---- edge rail ----
+        if (reading && !railHidden)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: _railWidth,
+            child: EdgeRail(
+              count: mapCount,
+              marks: marks,
+              barKeys: railKeys,
+              panel: panel,
+              onCards: () =>
+                  setState(() => panel = panel == 'cards' ? null : 'cards'),
+              onMap: () =>
+                  setState(() => panel = panel == 'map' ? null : 'map'),
+              onHide: () => setState(() {
+                railHidden = true;
+                panel = null;
+              }),
+              onDragOpen: () => setState(() => panel = 'cards'),
+            ),
+          ),
+        if (reading && railHidden)
+          Positioned(
+            right: 0,
+            top: h / 2 - 36,
+            child: EdgeHandle(onShow: () => setState(() => railHidden = false)),
+          ),
+
+        // ---- overlays on top of the PDF (the PDF does not move) ----
+        if (reading && panel != null) ...[
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            right: _railWidth,
+            child: GestureDetector(
+              key: const ValueKey('panel-scrim'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => panel = null),
+              child: ColoredBox(
+                color: panel == 'map'
+                    ? Colors.black.withValues(alpha: 0.12)
+                    : Colors.transparent,
               ),
             ),
-          ],
-        );
-      },
+          ),
+          Positioned(
+            right: _railWidth,
+            top: 0,
+            bottom: 0,
+            width: panel == 'map' ? mapW : _cardsPanelWidth,
+            child: OverlayPanel(
+              panel: panel!,
+              subtitle: panel == 'cards'
+                  ? '本文 ${positions.length} 张'
+                  : '可拖拽节点，点回退图标回到原文',
+              onPanel: (v) => setState(() => panel = v),
+              onClose: () => setState(() => panel = null),
+              child: panel == 'cards'
+                  ? CardsOverlayBody(
+                      positions: positions,
+                      bodyTop: overlayHeaderHeight + 1,
+                      selectedId: selectedId,
+                      cardKeys: panelCardKeys,
+                      onOpen: _openCard,
+                      onJump: _jumpTo,
+                    )
+                  : MindMapView(
+                      set: set,
+                      nodeKeys: nodeKeys,
+                      flashId: flashNodeId,
+                      selectedId: selectedId,
+                      onOpen: _openCard,
+                      onJump: _jumpTo,
+                      onMove: _moveCard,
+                    ),
+            ),
+          ),
+        ],
+
+        // ---- organize / recall: the mind map fills the screen ----
+        if (!reading)
+          Positioned.fill(
+            child: ColoredBox(
+              key: ValueKey('map-view-${mode.name}'),
+              color: p.paper,
+              child: MindMapView(
+                set: set,
+                nodeKeys: nodeKeys,
+                flashId: flashNodeId,
+                selectedId: selectedId,
+                onOpen: _openCard,
+                onJump: _showSource,
+                onMove: _moveCard,
+                masked: mode == WorkMode.recall ? masked : null,
+                fill: true,
+                onReveal: (c) => setState(() => masked.remove(c.id)),
+              ),
+            ),
+          ),
+        if (mode == WorkMode.organize && sourceCard != null)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: (w * 0.36).clamp(360.0, 480.0),
+            child: SourceSheet(
+              key: ValueKey('source-${sourceCard!.id}'),
+              store: store,
+              set: set,
+              card: sourceCard!,
+              page:
+                  controller.isReady && sourceCard!.page <= controller.pageCount
+                  ? controller.pages[sourceCard!.page - 1]
+                  : null,
+              onRead: () => _readAt(sourceCard!),
+              onClose: () => setState(() => sourceCard = null),
+            ),
+          ),
+
+        // ---- bottom toolbar ----
+        Positioned(
+          left: 16,
+          bottom: 16,
+          right: (reading ? _railWidth : 0) + 16,
+          child: Align(
+            alignment: reading ? Alignment.bottomLeft : Alignment.bottomCenter,
+            child: ModeToolbar(
+              ink: ink == null
+                  ? null
+                  : InkControls(
+                      tool: inkTool,
+                      onTool: (t) {
+                        setState(() => inkTool = t);
+                        if (lassoSel != null) _clearLasso();
+                      },
+                      color: inkTool == InkTool.highlighter
+                          ? highlighterColor
+                          : penColor,
+                      onColor: (c) => setState(() {
+                        if (inkTool == InkTool.highlighter) {
+                          highlighterColor = c;
+                        } else {
+                          penColor = c;
+                        }
+                      }),
+                      width: inkWidth,
+                      onWidth: (w) => setState(() => inkWidth = w),
+                      canUndo: ink!.history.canUndo,
+                      canRedo: ink!.history.canRedo,
+                      onUndo: () {
+                        if (ink!.undo()) _inkChanged();
+                      },
+                      onRedo: () {
+                        if (ink!.redo()) _inkChanged();
+                      },
+                      fingerDrawing: store.fingerDrawing,
+                      onFingerDrawing: (v) =>
+                          setState(() => store.fingerDrawing = v),
+                    ),
+              mode: mode,
+              onMode: _setMode,
+              color: color,
+              onColor: (c) => setState(() => color = c),
+              onRevealAll: () => setState(() => masked = {}),
+              onRemask: () => setState(
+                () => masked = set.mapCards.map((c) => c.id).toSet(),
+              ),
+              tool: tool,
+              onTool: (t) {
+                setState(() => tool = t);
+                if (t == ExcerptTool.box) _toast('在页面上拖出一个矩形来截取区域');
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "已加入：<标题>　编辑　撤销", shown for 3 s next to where the excerpt was made.
+  Widget _addedChip(MnotePalette p, double viewW) {
+    final a = added!;
+    final left = (a.at.dx - 40).clamp(
+      12.0,
+      (viewW - 380).clamp(12.0, double.infinity),
+    );
+    final top = (a.at.dy - 52).clamp(8.0, double.infinity);
+    return Positioned(
+      left: left,
+      top: top,
+      child: Material(
+        key: const ValueKey('added-chip'),
+        color: const Color(0xFF2A251E),
+        elevation: 8,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: a.card.color.ink(dark: p.dark),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  '已加入：${a.card.title}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('added-edit'),
+                onPressed: () {
+                  setState(() => added = null);
+                  _openCard(a.card);
+                },
+                child: Text(
+                  '编辑',
+                  style: TextStyle(
+                    color: p.accent == const Color(0xFFB4532A)
+                        ? const Color(0xFFF0A07A)
+                        : p.accent,
+                  ),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('added-undo'),
+                onPressed: _undoAdded,
+                child: const Text(
+                  '撤销',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1148,94 +1406,6 @@ class _WorkspacePageState extends State<WorkspacePage>
         ),
       ),
     ];
-  }
-
-  Widget _splitter(MnotePalette p) {
-    if (!mapOpen) return VerticalDivider(width: 1, color: p.line);
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeColumn,
-      child: GestureDetector(
-        key: const ValueKey('map-splitter'),
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragUpdate: (d) => setState(
-          () => mapWidth = (mapWidth - d.delta.dx).clamp(_mapMin, _mapMax),
-        ),
-        child: Container(
-          width: 12,
-          color: p.paper,
-          alignment: Alignment.center,
-          child: Container(
-            width: 4,
-            height: 44,
-            decoration: BoxDecoration(
-              color: p.line,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _mapPanel(MnotePalette p) {
-    if (!mapOpen) {
-      return Container(
-        width: _mapCollapsed,
-        color: p.paper,
-        alignment: Alignment.topCenter,
-        padding: const EdgeInsets.only(top: 8),
-        child: IconButton(
-          key: const ValueKey('map-expand'),
-          tooltip: '展开脑图',
-          icon: Icon(Icons.account_tree_outlined, color: p.ink2),
-          onPressed: () => setState(() => mapOpenChoice = true),
-        ),
-      );
-    }
-    final count = set.mapCards.length;
-    return Container(
-      width: mapWidth,
-      color: p.paper,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Text('脑图', style: TextStyle(fontSize: 13, color: p.ink3)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${set.name}，$count 张卡片',
-                    overflow: TextOverflow.ellipsis,
-                    style: serifStyle(p.ink, size: 15, weight: FontWeight.w600),
-                  ),
-                ),
-                IconButton(
-                  key: const ValueKey('map-collapse'),
-                  tooltip: '收起脑图',
-                  icon: Icon(Icons.last_page, color: p.ink2),
-                  onPressed: () => setState(() => mapOpenChoice = false),
-                ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: p.line),
-          Expanded(
-            child: MindMapView(
-              set: set,
-              nodeKeys: nodeKeys,
-              flashId: flashNodeId,
-              selectedId: selectedId,
-              onOpen: _openCard,
-              onJump: _jumpTo,
-              onMove: _moveCard,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

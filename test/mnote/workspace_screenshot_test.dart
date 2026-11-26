@@ -31,7 +31,15 @@ Future<void> _loadFont(String family, List<String> paths) async {
 }
 
 void main() {
-  for (final variant in ['day', 'night', 'handwrite']) {
+  for (final variant in [
+    'day',
+    'night',
+    'handwrite',
+    'cards',
+    'map',
+    'organize',
+    'recall',
+  ]) {
     final night = variant == 'night';
     testWidgets(
       'workspace screenshot $variant',
@@ -198,8 +206,52 @@ void main() {
           );
           await tester.pump(const Duration(milliseconds: 50));
         }
+        Future<void> frames([int n = 10]) async {
+          for (var i = 0; i < n; i++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 100)),
+            );
+            await tester.pump(const Duration(milliseconds: 50));
+          }
+        }
+
+        Future<void> mode(String name) async {
+          await tester.tap(find.byKey(const ValueKey('mode-menu')));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(find.byKey(ValueKey('mode-menu-$name')).last);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          await frames();
+        }
+
+        if (variant == 'cards' || variant == 'map') {
+          await tester.tap(
+            find.byKey(
+              ValueKey(variant == 'cards' ? 'rail-cards' : 'rail-map'),
+            ),
+          );
+          await frames();
+        }
+        if (variant == 'organize') {
+          await mode('organize');
+          await tester.tap(find.byKey(const ValueKey('mindmap-jump-b')));
+          await frames(15);
+        }
+        if (variant == 'recall') {
+          await mode('recall');
+          await tester.tap(find.byKey(const ValueKey('mindmap-node-c')));
+          await frames(3);
+        }
         if (variant == 'handwrite') {
-          await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
+          await tester.tap(find.byKey(const ValueKey('mode-menu')));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(
+            find.byKey(const ValueKey('mode-menu-handwrite')).last,
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 400));
           for (var i = 0; i < 10; i++) {
             await tester.runAsync(
               () => Future<void>.delayed(const Duration(milliseconds: 100)),

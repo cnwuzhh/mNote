@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 import 'package:saber/mnote/model/models.dart';
@@ -15,6 +17,9 @@ class MindMapView extends StatelessWidget {
     required this.onJump,
     required this.onMove,
     this.flashId,
+    this.masked,
+    this.onReveal,
+    this.fill = false,
     this.selectedId,
   });
 
@@ -28,6 +33,15 @@ class MindMapView extends StatelessWidget {
   final String? flashId;
   final String? selectedId;
 
+  /// Recall mode: ids of cards whose content is hidden; tapping one calls
+  /// [onReveal] instead of opening it.
+  final Set<String>? masked;
+  final void Function(MCard card)? onReveal;
+
+  /// Full-screen use (organize / recall): centre the tree and let it grow a
+  /// little so it reads comfortably; in the narrow overlay it only shrinks.
+  final bool fill;
+
   @override
   Widget build(BuildContext context) {
     final p = MnotePalette.of(context);
@@ -38,6 +52,7 @@ class MindMapView extends StatelessWidget {
     ]);
     return _FitToWidthViewer(
       signature: signature,
+      fill: fill,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
@@ -171,6 +186,36 @@ class _Node extends StatelessWidget {
     final key = parent.nodeKeys.putIfAbsent(card.id, GlobalKey.new);
     final flashing = parent.flashId == card.id;
     final selected = parent.selectedId == card.id;
+    final isMasked = parent.masked?.contains(card.id) ?? false;
+
+    // Recall mode: only colour and position are visible.
+    Widget masked() => Container(
+      key: key,
+      width: 176,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: p.line),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              height: 10,
+              decoration: BoxDecoration(
+                color: p.line,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+          Container(height: 3, color: card.color.ink(dark: p.dark)),
+        ],
+      ),
+    );
 
     Widget node(bool hovered) => AnimatedContainer(
       key: key,
@@ -263,8 +308,9 @@ class _Node extends StatelessWidget {
         childWhenDragging: Opacity(opacity: 0.35, child: node(false)),
         child: GestureDetector(
           key: ValueKey('mindmap-node-${card.id}'),
-          onTap: () => parent.onOpen(card),
-          child: node(candidates.isNotEmpty),
+          onTap: () =>
+              isMasked ? parent.onReveal?.call(card) : parent.onOpen(card),
+          child: isMasked ? masked() : node(candidates.isNotEmpty),
         ),
       ),
     );
@@ -319,9 +365,10 @@ class _BranchPainter extends CustomPainter {
 /// available width whenever [signature] changes, so a wide tree stays fully
 /// visible in the side panel. Users can still pinch to zoom and pan.
 class _FitToWidthViewer extends StatefulWidget {
-  const new({required this.signature, required this.child});
+  const new({required this.signature, required this.child, this.fill = false});
 
   final int signature;
+  final bool fill;
   final Widget child;
 
   @override
@@ -333,6 +380,7 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
   final contentKey = GlobalKey();
   int? fittedFor;
   double? fittedWidth;
+  double? fittedHeight;
 
   @override
   void dispose() {
@@ -340,25 +388,42 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
     super.dispose();
   }
 
-  void _fit(double viewportWidth) {
+  void _fit(double viewportWidth, double viewportHeight) {
     final box = contentKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
-    final w = box.size.width;
-    final scale = w <= viewportWidth
-        ? 1.0
-        : (viewportWidth / w).clamp(0.78, 1.0);
-    transform.value = Matrix4.identity()..scaleByDouble(scale, scale, 1, 1);
+    final w = box.size.width, h = box.size.height;
+    double scale;
+    if (widget.fill) {
+      // Fill most of the screen, up to 1.6x, never below the overlay's floor.
+      scale = math
+          .min((viewportWidth * 0.9) / w, (viewportHeight * 0.8) / h)
+          .clamp(0.78, 1.6);
+    } else {
+      scale = w <= viewportWidth ? 1.0 : (viewportWidth / w).clamp(0.78, 1.0);
+    }
+    final dx = widget.fill
+        ? math.max(0.0, (viewportWidth - w * scale) / 2)
+        : 0.0;
+    final dy = widget.fill
+        ? math.max(0.0, (viewportHeight - h * scale) / 2 - 24)
+        : 0.0;
+    transform.value = Matrix4.identity()
+      ..translateByDouble(dx, dy, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1);
     fittedFor = widget.signature;
     fittedWidth = viewportWidth;
+    fittedHeight = viewportHeight;
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, cons) {
-        if (fittedFor != widget.signature || fittedWidth != cons.maxWidth) {
+        if (fittedFor != widget.signature ||
+            fittedWidth != cons.maxWidth ||
+            fittedHeight != cons.maxHeight) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _fit(cons.maxWidth);
+            if (mounted) _fit(cons.maxWidth, cons.maxHeight);
           });
         }
         return InteractiveViewer(

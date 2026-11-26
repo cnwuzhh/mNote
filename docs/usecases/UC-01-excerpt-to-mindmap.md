@@ -1,5 +1,7 @@
 # UC-01 从 PDF 摘录到脑图（M1 核心用例）
 
+> **布局更新（v2，2026-11-26）**：工作区不再是三栏。阅读（摘录 / 手写）时 PDF 占满宽度，右侧只有窄边栏（卡片数、卡片 / 脑图入口、与原文同高的彩色细条，可收起成把手）；卡片列表和脑图都以浮层从右侧拉出，盖在 PDF 上，PDF 不移动；摘录后选区旁显示「已加入：标题　编辑　撤销」，卡片飞入窄边栏。整理模式脑图铺满屏幕，「回到原文」弹出放大到段落的原文侧滑页；回忆模式遮住卡片内容。下文中「页边卡片」「右侧脑图」「收起脑图」等描述按此理解：页边卡片 = 窄边栏细条 + 卡片浮层；右侧脑图 = 脑图浮层或整理模式。设计：`design/layout-v2/layout-compare.html`（方案 D）。
+
 > 设计依据：mNote 正式版设计稿「页边」（design-demos/final.html）
 > 测试素材：`test/samples/usecases/arxiv-2610.18579v1.pdf`
 > ——Li, Krishnan, Padman, *Reading Right, Acting Wrong: Diagnosing Decision Failures of System One Models in Agent Loops*, arXiv:2610.18579v1, CC BY 4.0（33 页，英文，**双栏排版**，带 PDF 目录书签、图表和公式符号）

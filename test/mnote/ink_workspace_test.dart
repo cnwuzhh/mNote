@@ -91,7 +91,12 @@ void main() {
             .onTap !=
         null;
 
-    await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
+    await tester.tap(find.byKey(const ValueKey('mode-menu')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byKey(const ValueKey('mode-menu-handwrite')).last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await settle(5);
     // Icon-only tools carry their names as tooltips.
     expect(find.byTooltip('钢笔'), findsOneWidget);
@@ -117,7 +122,7 @@ void main() {
     await tester.pump();
     expect(find.byTooltip('手指书写：开'), findsOneWidget);
     expect(store.fingerDrawing, isTrue);
-    await drag(const Offset(400, 400), PointerDeviceKind.touch);
+    await drag(const Offset(400, 250), PointerDeviceKind.touch);
 
     // Undo / redo.
     await tester.tap(find.byKey(const ValueKey('ink-undo')));
@@ -229,7 +234,12 @@ void main() {
       await tester.pump();
     }
 
-    await tester.tap(find.byKey(const ValueKey('mode-handwrite')));
+    await tester.tap(find.byKey(const ValueKey('mode-menu')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byKey(const ValueKey('mode-menu-handwrite')).last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     await settle(5);
     // A short stroke in the right margin area of the abstract.
     await stylusPath([for (var x = 430.0; x <= 490; x += 10) Offset(x, 200)]);
