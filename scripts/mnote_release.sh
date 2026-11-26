@@ -13,6 +13,7 @@
 #
 # Usage: scripts/mnote_release.sh [debug|release] [--allow-dirty] [--skip-tests]
 set -euo pipefail
+export TZ=${MNOTE_TZ:-Asia/Shanghai}   # build ids and timestamps in Beijing time
 
 TYPE=debug
 ALLOW_DIRTY=0
@@ -152,7 +153,16 @@ cp "$OUT/RELEASE_NOTES.md" "docs/releases/$ID.md"
 if [[ ! -f docs/releases/index.md ]]; then
   printf '# 编译记录\n\n| 编译编号 | 时间 | 类型 | commit | 说明 |\n|---|---|---|---|---|\n' >docs/releases/index.md
 fi
-SUMMARY=$(grep -m1 -E '^- ' docs/releases/UNRELEASED.md | sed -E 's/^- //; s/\|/／/g' | cut -c1-80)
+# One-line summary: the first "> " line of the notes, else the first bullet;
+# markdown stripped, cut to 40 characters (not bytes).
+SUMMARY=$(python3 - <<'PY2'
+import re
+lines = open("docs/releases/UNRELEASED.md", encoding="utf-8").read().splitlines()
+pick = next((l[2:] for l in lines if l.startswith("> ")), None) or next((l[2:] for l in lines if l.startswith("- ")), "")
+pick = re.sub(r"[*`|]", "", pick).strip()
+print(pick if len(pick) <= 40 else pick[:40] + "…")
+PY2
+)
 echo "| $ID | $(date '+%Y-%m-%d %H:%M') | $TYPE | $SHA | [$SUMMARY]($ID.md) |" >>docs/releases/index.md
 cp scripts/release_notes_template.md docs/releases/UNRELEASED.md
 git add "docs/releases/$ID.md" docs/releases/index.md docs/releases/UNRELEASED.md
