@@ -10,3 +10,4 @@
 | mnote-20261126-1606-771aafda-debug | 2026-11-26 16:07 | debug | 771aafda | [新增脑图拖动测试用例（TC-MAP-04 至 TC-MAP-14）；修复回忆模式…](mnote-20261126-1606-771aafda-debug.md) |
 | mnote-20261126-1625-38aecc86-debug | 2026-11-26 16:26 | debug | 38aecc86 | [用例修正：TC-MAP-02 前置条件、TC-INK-03 改为人工；新增人工检…](mnote-20261126-1625-38aecc86-debug.md) |
 | mnote-20261126-1657-e598e17f-debug | 2026-11-26 16:58 | debug | e598e17f | [持久化加固：保存不再互相覆盖，损坏文件不连带丢数据，删除的学习集不会复活](mnote-20261126-1657-e598e17f-debug.md) |
+| mnote-20261127-0034-2afb38c3-debug | 2026-11-27 00:35 | debug | 2afb38c3 | [从网络链接导入 PDF（支持 arXiv 论文页链接）](mnote-20261127-0034-2afb38c3-debug.md) |
