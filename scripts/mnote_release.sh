@@ -2,7 +2,7 @@
 # Build mNote and package one self-contained directory per build:
 #
 #   $MNOTE_BUILDS_DIR/<build-id>/
-#     mNote-<build-id>.apk
+#     <build-id>.apk
 #     RELEASE_NOTES.md     header + docs/releases/UNRELEASED.md + commit list
 #     manifest.json        package, version, commit, sha256, checks
 #     testcases/           testing/device/* + assets/ (sample PDFs) + reference/ (screenshots)
@@ -82,13 +82,13 @@ flutter build apk "--$TYPE" --target-platform android-arm64 >"$OUT/build.log" 2>
   echo "Build failed, see $OUT/build.log" >&2; exit 1; }
 SRC_APK=build/app/outputs/flutter-apk/app-$TYPE.apk
 [[ $TYPE == release ]] && SRC_APK=build/app/outputs/flutter-apk/app-release.apk
-APK="$OUT/mNote-$ID.apk"
+APK="$OUT/$ID.apk"
 cp "$SRC_APK" "$APK"
 APK_SHA=$(sha256sum "$APK" | cut -d' ' -f1)
-BADGING=$("$BT/aapt2" dump badging "$APK" 2>/dev/null | head -1)
+BADGING=$("$BT/aapt2" dump badging "$APK" 2>/dev/null | awk 'NR==1' || true)
 VNAME=$(echo "$BADGING" | sed -E "s/.*versionName='([^']*)'.*/\1/")
 VCODE=$(echo "$BADGING" | sed -E "s/.*versionCode='([^']*)'.*/\1/")
-SIGNER=$("$BT/apksigner" verify --print-certs "$APK" 2>/dev/null | grep -m1 'certificate DN' | sed 's/.*DN: //')
+SIGNER=$("$BT/apksigner" verify --print-certs "$APK" 2>/dev/null | awk -F'DN: ' '/certificate DN/ && !n {print $2; n=1}' || true)
 
 # ---- test cases ----
 cp -r testing/device/. "$OUT/testcases/"
@@ -140,7 +140,7 @@ cat >"$OUT/manifest.json" <<JSON
   "branch": "$BRANCH",
   "commit": "$(git rev-parse HEAD)",
   "previousBuild": "${PREV_ID}",
-  "apk": "mNote-$ID.apk",
+  "apk": "$ID.apk",
   "apkSha256": "$APK_SHA",
   "signer": "$SIGNER",
   "checks": { "analyze": "$ANALYZE", "tests": "$TESTS" }

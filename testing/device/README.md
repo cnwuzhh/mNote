@@ -4,7 +4,7 @@
 
 ```
 <build-id>/
-  mNote-<build-id>.apk     要测试的安装包
+  <build-id>.apk     要测试的安装包
   RELEASE_NOTES.md         这次改了什么、这次要重点测什么（必读）
   manifest.json            包名、版本、commit、SHA-256
   testcases/
@@ -25,7 +25,7 @@
 ## 2. 准备
 
 ```bash
-APK=mNote-<build-id>.apk
+APK=<build-id>.apk
 PKG=io.github.cnwuzhh.mnote
 adb devices                                   # 确认设备在线
 adb uninstall $PKG || true                    # 每次从干净状态开始（除非用例要求保留数据）
