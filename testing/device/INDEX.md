@@ -62,10 +62,19 @@
 | TC-PERSIST-04 | 删除的学习集不会回来 | P0 |  | cases/TC-50-persistence.md | 持久化 |
 | TC-PERSIST-05 | 损坏的笔迹文件被保留并提示 | P1 |  | cases/TC-50-persistence.md | 反持久化容错 |
 | TC-PERSIST-06 | 损坏的学习集文件不影响其他学习集 | P1 |  | cases/TC-50-persistence.md | 反持久化容错 |
+| TC-URL-01 | arXiv 论文页链接 | P0 | ✓ | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-02 | 直接的 PDF 链接、省略 https | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-03 | 不是 PDF 的链接 | P0 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-04 | 格式不对的链接 | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-05 | 连不上的地址 | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-06 | 下载中取消 | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-07 | 导入后可改标题，重启后保留 | P1 |  | cases/TC-60-url-import.md | 网络链接导入、重命名 |
+| TC-URL-08 | 导入后离线可读 | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-URL-09 | 剪贴板里的链接自动填入 | P2 |  | cases/TC-60-url-import.md | 网络链接导入 |
 
 TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。
 
-冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-PERSIST-01。
+冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-URL-01 → TC-PERSIST-01。
 
 ## 维护规则
 - 用例 ID 一经发布不改、不复用；功能删除时把用例标为「已废弃」并保留。

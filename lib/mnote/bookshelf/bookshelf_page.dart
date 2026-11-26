@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:saber/mnote/import/url_import.dart';
 
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/reader/workspace_page.dart';
@@ -302,7 +307,7 @@ class StudySetPage extends StatelessWidget {
                 key: const ValueKey('btn-import-pdf'),
                 backgroundColor: p.accent,
                 foregroundColor: Colors.white,
-                onPressed: () => _import(context),
+                onPressed: () => _chooseImport(context),
                 icon: const Icon(Icons.upload_file),
                 label: const Text('导入 PDF'),
               ),
@@ -341,9 +346,14 @@ class StudySetPage extends StatelessWidget {
                               ),
                               subtitle: Text(
                                 '${d.pageCount == 0 ? '' : '${d.pageCount} 页，'}已读 ${(d.progress * 100).round()}%，'
-                                '${set.cards.where((c) => c.docId == d.id && !c.highlightOnly).length} 张卡片',
+                                '${set.cards.where((c) => c.docId == d.id && !c.highlightOnly).length} 张卡片'
+                                '${d.sourceUrl == null ? '' : '\n来自 ${_shortSource(d.sourceUrl!)}'}',
+                                key: ValueKey('doc-subtitle-${d.id}'),
                                 style: TextStyle(color: p.ink3),
                               ),
+                              isThreeLine: d.sourceUrl != null,
+                              // Long-press to rename (e.g. a title taken from a link).
+                              onLongPress: () => _renameDoc(context, d),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => openDoc(context, d),
                             ),
@@ -365,6 +375,180 @@ class StudySetPage extends StatelessWidget {
           ),
         ),
       );
+
+  static String _shortSource(String url) {
+    final u = Uri.tryParse(url);
+    if (u == null) return url;
+    final path = u.path.length > 40 ? '${u.path.substring(0, 40)}…' : u.path;
+    return '${u.host}$path';
+  }
+
+  Future<void> _renameDoc(BuildContext context, StudyDoc d) async {
+    final name = await promptText(context, title: '重命名文档', initial: d.title);
+    if (name == null || name.trim().isEmpty) return;
+    d.title = name.trim();
+    store.touch(set);
+  }
+
+  Future<void> _chooseImport(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('import-local'),
+              leading: const Icon(Icons.folder_open_outlined),
+              title: const Text('从本机选择'),
+              onTap: () => Navigator.pop(ctx, 'local'),
+            ),
+            ListTile(
+              key: const ValueKey('import-url'),
+              leading: const Icon(Icons.link),
+              title: const Text('从网络链接'),
+              subtitle: const Text('粘贴 PDF 或 arXiv 论文页的链接'),
+              onTap: () => Navigator.pop(ctx, 'url'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    if (choice == 'local') {
+      await _import(context);
+    } else if (choice == 'url') {
+      await _importUrl(context);
+    }
+  }
+
+  Future<void> _importUrl(BuildContext context) async {
+    // Prefill with a link from the clipboard, if there is one.
+    String? clip;
+    try {
+      clip = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim();
+    } catch (_) {}
+    if (!context.mounted) return;
+    final prefill =
+        (clip != null &&
+            RegExp(
+              r'^(https?://|arxiv\.org/)',
+              caseSensitive: false,
+            ).hasMatch(clip))
+        ? clip
+        : '';
+    final url = await showDialog<Uri>(
+      context: context,
+      builder: (_) => _UrlDialog(initial: prefill),
+    );
+    if (url == null || !context.mounted) return;
+
+    final cancel = DownloadCancelToken();
+    final progress = ValueNotifier<(int, int?)>((0, null));
+    final dialog = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('url-progress'),
+        title: const Text('正在下载'),
+        content: ValueListenableBuilder<(int, int?)>(
+          valueListenable: progress,
+          builder: (_, v, _) {
+            final (got, total) = v;
+            String mb(int b) => (b / (1024 * 1024)).toStringAsFixed(1);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(url.host, style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 12),
+                LinearProgressIndicator(
+                  value: total == null || total == 0 ? null : got / total,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  total == null
+                      ? '已下载 ${mb(got)} MB'
+                      : '已下载 ${mb(got)} / ${mb(total)} MB',
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('url-cancel'),
+            onPressed: cancel.cancel,
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+
+    StudyDoc? doc;
+    String? error;
+    var cancelled = false;
+    try {
+      final tmpDir = Directory(
+        '${(await getTemporaryDirectory()).path}/mnote-downloads',
+      );
+      final got = await downloadPdf(
+        url,
+        tempDir: tmpDir,
+        cancel: cancel,
+        onProgress: (r, t) => progress.value = (r, t),
+      );
+      try {
+        var pages = 0;
+        try {
+          final pdf = await PdfDocument.openFile(got.file.path);
+          pages = pdf.pages.length;
+          await pdf.dispose();
+        } catch (_) {
+          throw UrlImportException('下载的文件已损坏或无法打开');
+        }
+        doc = await store.importPdf(
+          set,
+          got.file.path,
+          title: got.title,
+          pageCount: pages,
+          sourceUrl: got.url.toString(),
+        );
+      } finally {
+        if (got.file.existsSync()) await got.file.delete();
+      }
+    } on UrlImportCancelled {
+      cancelled = true;
+    } on UrlImportException catch (e) {
+      error = e.message;
+    } catch (e) {
+      error = '下载失败：$e';
+    }
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+    await dialog;
+    if (!context.mounted) return;
+    if (cancelled) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('已取消下载')));
+    } else if (error != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          key: const ValueKey('url-error'),
+          title: const Text('无法导入'),
+          content: Text(error!),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    } else if (doc != null) {
+      await openDoc(context, doc);
+    }
+  }
 
   Future<void> _import(BuildContext context) async {
     final file = await FilePicker.pickFile(
@@ -449,4 +633,65 @@ Future<String?> promptText(
       ],
     ),
   );
+}
+
+/// Asks for a link; returns the normalized URL (see [normalizePdfUrl]).
+class _UrlDialog extends StatefulWidget {
+  const new({required this.initial});
+  final String initial;
+
+  @override
+  State<_UrlDialog> createState() => _UrlDialogState();
+}
+
+class _UrlDialogState extends State<_UrlDialog> {
+  late final controller = TextEditingController(text: widget.initial);
+  String? error;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _ok() {
+    try {
+      Navigator.pop(context, normalizePdfUrl(controller.text));
+    } on UrlImportException catch (e) {
+      setState(() => error = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('从网络链接导入'),
+      content: SizedBox(
+        width: 480,
+        child: TextField(
+          key: const ValueKey('url-field'),
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: 'https://… 或 arxiv.org/abs/…',
+            helperText: 'arXiv 论文页的链接会自动换成 PDF',
+            errorText: error,
+          ),
+          onSubmitted: (_) => _ok(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          key: const ValueKey('url-ok'),
+          onPressed: _ok,
+          child: const Text('下载'),
+        ),
+      ],
+    );
+  }
 }

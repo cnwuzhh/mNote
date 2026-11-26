@@ -195,6 +195,7 @@ class StudyStore extends ChangeNotifier {
     String sourcePath, {
     String? title,
     int pageCount = 0,
+    String? sourceUrl,
   }) async {
     final id = newId();
     final fileName = '$id.pdf';
@@ -209,6 +210,7 @@ class StudyStore extends ChangeNotifier {
           baseName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), ''),
       fileName: fileName,
       pageCount: pageCount,
+      sourceUrl: sourceUrl,
     );
     set.docs.add(doc);
     await saveNow(set);

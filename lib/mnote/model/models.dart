@@ -179,6 +179,7 @@ class StudyDoc {
     this.pageCount = 0,
     this.lastPage = 1,
     this.maxPageRead = 1,
+    this.sourceUrl,
     DateTime? lastOpened,
   }) : lastOpened = lastOpened ?? DateTime.now();
 
@@ -189,6 +190,9 @@ class StudyDoc {
   int lastPage;
   int maxPageRead;
   DateTime lastOpened;
+
+  /// Link the PDF was downloaded from; null for files picked on the device.
+  final String? sourceUrl;
 
   double get progress =>
       pageCount == 0 ? 0 : (maxPageRead / pageCount).clamp(0.0, 1.0);
@@ -201,6 +205,7 @@ class StudyDoc {
     'lastPage': lastPage,
     'maxPageRead': maxPageRead,
     'lastOpened': lastOpened.toIso8601String(),
+    if (sourceUrl != null) 'sourceUrl': sourceUrl,
   };
 
   factory fromJson(Map<String, dynamic> j) => StudyDoc(
@@ -210,6 +215,7 @@ class StudyDoc {
     pageCount: _int(j['pageCount'], 0),
     lastPage: _int(j['lastPage'], 1),
     maxPageRead: _int(j['maxPageRead'], 1),
+    sourceUrl: j['sourceUrl'] as String?,
     lastOpened: DateTime.tryParse(j['lastOpened'] as String? ?? ''),
   );
 }
