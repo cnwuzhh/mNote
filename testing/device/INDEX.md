@@ -7,6 +7,7 @@
 | TC-INST-01 | 安装并启动 | P0 | ✓ | cases/TC-10-install-brand-login.md | 包名、App 名、启动页 |
 | TC-BRAND-01 | 界面里没有 Saber 字样 | P0 | ✓ | cases/TC-10-install-brand-login.md | 去 Saber 品牌 |
 | TC-BRAND-02 | 不弹崩溃报告授权 | P0 | ✓ | cases/TC-10-install-brand-login.md | 关闭上游崩溃报告 |
+| TC-BRAND-03 | 隐私政策等链接是占位地址 | P1 |  | cases/TC-10-install-brand-login.md | 不指向 Saber 服务 |
 | TC-HOME-01 | 首页没有欢迎页 | P1 |  | cases/TC-10-install-brand-login.md | 删除欢迎页 |
 | TC-LOGIN-01 | 只能登录自己的 Nextcloud | P1 |  | cases/TC-10-install-brand-login.md | 去掉 Saber 服务器；地址校验修复 |
 | TC-LOGIN-02 | 横屏弹出键盘不溢出 | P1 |  | cases/TC-10-install-brand-login.md | 键盘溢出修复 |

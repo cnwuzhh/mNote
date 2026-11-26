@@ -14,8 +14,12 @@ import 'package:saber/data/prefs.dart';
 import 'package:saber/data/version.dart';
 
 extension NextcloudClientExtension on NextcloudClient {
+  // mNote has no default server. This used to be Saber's own server and
+  // was used whenever no server URL is saved; a `.invalid` host makes any
+  // such code path fail with a connection error instead of silently
+  // syncing to someone else's server.
   static final Uri defaultNextcloudUri = Uri.parse(
-    'https://nc.saber.adil.hanney.org',
+    'https://no-default-server.mnote.invalid',
   );
 
   static final userAgent =

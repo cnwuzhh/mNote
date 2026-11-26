@@ -9,11 +9,11 @@ import 'package:saber/i18n/strings.g.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class const AppInfo({super.key}) extends StatelessWidget {
-  static final Uri sponsorUrl = Uri.parse(
-    'https://github.com/sponsors/adil192',
-  );
+  // mNote placeholder: `.invalid` never resolves (RFC 2606), so using it
+  // fails visibly instead of silently pointing at upstream Saber. Replace
+  // with a real mNote URL once one exists.
   static final Uri privacyPolicyUrl = Uri.parse(
-    'https://saber.adil.hanney.org/privacy-policy/',
+    'https://privacy-policy.mnote.invalid/',
   );
   static final Uri licenseUrl = Uri.parse(
     'https://github.com/cnwuzhh/mNote/blob/main/LICENSE.md',

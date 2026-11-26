@@ -22,7 +22,8 @@ class NcLoginPage extends StatefulWidget {
   final LoginStep? forceCurrentStep;
 
   static final Uri signupUrl = Uri.parse(
-    'https://nc.saber.adil.hanney.org/index.php/apps/registration/',
+    // mNote placeholder (see AppInfo.privacyPolicyUrl): no sign-up service.
+    'https://signup.mnote.invalid/',
   );
 
   @override
