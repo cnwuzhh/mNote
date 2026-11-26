@@ -1,5 +1,5 @@
 <!-- empty -->
-<!-- 每次改动时把说明补到下面对应的小节，然后删掉第一行的 empty 标记。打包脚本见 scripts/mnote_release.sh。 -->
+<!-- 每次改动时把说明补到下面对应的小节，然后删掉第一行的 empty 标记。可选：加一行以 "> " 开头的一句话摘要，会写进 index.md。打包脚本见 scripts/mnote_release.sh。 -->
 # 本次改进
 
 ## 新功能
