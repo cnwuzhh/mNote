@@ -27,7 +27,11 @@ class FileManager {
 
   static final log = Logger('FileManager');
 
-  static const appRootDirectoryPrefix = 'Saber';
+  /// Name of the data folder, locally and on the Nextcloud server.
+  static const appRootDirectoryPrefix = 'mNote';
+
+  /// Folder name used by upstream Saber; migrated on first start.
+  static const legacyAppRootDirectoryPrefix = 'Saber';
 
   /// This isn't final because isolates sometimes init multiple times.
   /// Realistically, this value never changes.
@@ -79,8 +83,21 @@ class FileManager {
   static Future<String> getDocumentsDirectory() async =>
       stows.customDataDir.value ?? await getDefaultDocumentsDirectory();
 
-  static Future<String> getDefaultDocumentsDirectory() async =>
-      '${(await getApplicationDocumentsDirectory()).path}/$appRootDirectoryPrefix';
+  static Future<String> getDefaultDocumentsDirectory() async {
+    final base = (await getApplicationDocumentsDirectory()).path;
+    final dir = Directory('$base/$appRootDirectoryPrefix');
+    // mNote: move notes from the old default "Saber" folder, once.
+    final legacy = Directory('$base/$legacyAppRootDirectoryPrefix');
+    if (!dir.existsSync() && legacy.existsSync()) {
+      try {
+        await legacy.rename(dir.path);
+        log.info('Moved data folder ${legacy.path} -> ${dir.path}');
+      } catch (e) {
+        log.warning('Could not move legacy data folder: $e');
+      }
+    }
+    return dir.path;
+  }
 
   static Future<void> migrateDataDir() async {
     final oldDir = Directory(documentsDirectory);
@@ -307,7 +324,7 @@ class FileManager {
           await SaverGallery.saveImage(
             Uint8List.fromList(bytes),
             fileName: fileName,
-            albumPath: 'Saber',
+            albumPath: 'mNote',
             skipIfExists: true,
           );
         }

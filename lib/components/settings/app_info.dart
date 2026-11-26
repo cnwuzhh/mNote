@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
@@ -54,15 +52,6 @@ class const AppInfo({super.key}) extends StatelessWidget {
     applicationLegalese: t.appInfo.licenseNotice(buildYear: buildYear),
     children: [
       const SizedBox(height: 10),
-      if (!Platform.isIOS && !Platform.isMacOS)
-        // Apple rejected the app for having donations not through the App Store
-        TextButton(
-          onPressed: () => launchUrl(sponsorUrl),
-          child: SizedBox(
-            width: double.infinity,
-            child: Text(t.appInfo.sponsorButton),
-          ),
-        ),
       TextButton(
         onPressed: () => launchUrl(licenseUrl),
         child: SizedBox(

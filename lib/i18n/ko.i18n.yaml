@@ -91,7 +91,7 @@ sentry:
       yes(OUTDATED): 네
       no(OUTDATED): 아니요
       later(OUTDATED): 나중에 물어보세요
-    title(OUTDATED): Saber를 개선하는 데 도움을 주세요?
+    title(OUTDATED): mNote를 개선하는 데 도움을 주세요?
 settings:
   prefCategories:
     general(OUTDATED): 일반
@@ -106,7 +106,7 @@ settings:
     layoutSize(OUTDATED): 레이아웃 유형
     customAccentColor(OUTDATED): 사용자 지정 강조 색상
     hyperlegibleFont(OUTDATED): 애트킨슨 하이퍼레지블 폰트
-    shouldCheckForUpdates(OUTDATED): Saber 업데이트 확인하기
+    shouldCheckForUpdates(OUTDATED): mNote 업데이트 확인하기
     shouldAlwaysAlertForUpdates(OUTDATED): 더 빠른 업데이트
     allowInsecureConnections(OUTDATED): 보안되지 않은 연결 허용
     editorToolbarAlignment(OUTDATED): 툴바 위치
@@ -138,7 +138,7 @@ settings:
       activeUntilRestart(OUTDATED): 앱을 다시 시작할 때까지 활성 상태입니다.
       inactiveUntilRestart(OUTDATED): 앱을 다시 시작할 때까지 비활성 상태입니다
     hyperlegibleFont(OUTDATED): 저시력 사용자를 위한 가독성 향상
-    allowInsecureConnections(OUTDATED): (권장하지 않음) Saber가 자체 서명된/신뢰할 수 없는 인증서가 있는 서버에 연결하도록 허용합니다.
+    allowInsecureConnections(OUTDATED): (권장하지 않음) mNote가 자체 서명된/신뢰할 수 없는 인증서가 있는 서버에 연결하도록 허용합니다.
     preferGreyscale(OUTDATED): 전자 잉크 디스플레이용으로
     autoClearWhiteboardOnExit(OUTDATED): 앱을 종료하면 화이트보드를 지웁니다.
     disableEraserAfterUse(OUTDATED): 지우개 사용 후 자동으로 펜으로 돌아갑니다.
@@ -171,7 +171,7 @@ settings:
     unsupported(OUTDATED): 이 기능은 현재 개발자 전용입니다. 사용 시 데이터 손실이 발생할 수 있습니다.
   systemLanguage(OUTDATED): 자동
   resyncEverything(OUTDATED): 모든 것을 재동기화하세요
-  openDataDir(OUTDATED): Saber 폴더 열기
+  openDataDir(OUTDATED): mNote 폴더 열기
   autosaveDisabled(OUTDATED): 절대 안 돼
   shapeRecognitionDisabled(OUTDATED): 절대 안 돼
   axisDirections(OUTDATED):
@@ -196,14 +196,14 @@ login:
     loggedIn(OUTDATED): Nextcloud로 로그인했습니다
   ncLoginStep:
     loginFlow:
-      pleaseAuthorize(OUTDATED): Saber에게 귀하의 Nextcloud 계정에 액세스할 수 있는 권한을 부여해 주세요.
+      pleaseAuthorize(OUTDATED): mNote에게 귀하의 Nextcloud 계정에 액세스할 수 있는 권한을 부여해 주세요.
       followPrompts(OUTDATED): Nextcloud 인터페이스의 프롬프트를 따르세요
       browserDidntOpen(OUTDATED): 로그인 페이지가 열리지 않았나요? 여기를 클릭하세요
     whereToStoreData(OUTDATED): "데이터를 어디에 저장할지 선택하세요:"
-    saberNcServer(OUTDATED): Saber의 Nextcloud 서버
+    saberNcServer(OUTDATED): mNote의 Nextcloud 서버
     otherNcServer(OUTDATED): 다른 Nextcloud 서버
     serverUrl(OUTDATED): 서버 URL
-    loginWithSaber(OUTDATED): Saber로 로그인하기
+    loginWithmNote(OUTDATED): mNote로 로그인하기
     loginWithNextcloud(OUTDATED): Nextcloud로 로그인하기
   encLoginStep:
     encFaq:
@@ -215,11 +215,11 @@ login:
     - q(OUTDATED): 아직 암호화 비밀번호를 설정하지 않았습니다. 어디서 받을 수 있나요?
       a(OUTDATED): |-
         새로운 암호화 비밀번호를 선택하고 위에 입력하세요.
-        Saber가 이 비밀번호로부터 암호화 키를 자동으로 생성할 것입니다.
+        mNote가 이 비밀번호로부터 암호화 키를 자동으로 생성할 것입니다.
     - q(OUTDATED): Nextcloud 계정과 동일한 비밀번호를 사용할 수 있나요?
       a(OUTDATED): 네, 하지만 서버 관리자나 다른 사람이 귀하의 Nextcloud 계정에 접근할 경우 귀하의 메모에 접근하기가 더 쉬울 수 있다는 점을 염두에 두시기 바랍니다.
     enterEncPassword(OUTDATED): "데이터를 보호하려면 암호화 비밀번호를 입력하십시오:"
-    newToSaber(OUTDATED): Saber를 처음 사용하시나요? 새 암호만 입력하세요.
+    newTomNote(OUTDATED): mNote를 처음 사용하시나요? 새 암호만 입력하세요.
     encPassword(OUTDATED): 암호화 비밀번호
     encFaqTitle(OUTDATED): 자주 묻는 질문
     wrongEncPassword(OUTDATED): 제공된 비밀번호로 복호화에 실패했습니다. 다시 입력해 주세요.
@@ -235,18 +235,17 @@ profile:
   - q(OUTDATED): 로그아웃하면 메모가 사라지나요?
     a(OUTDATED): 아니요. 메모는 기기와 서버 양쪽에 그대로 유지됩니다. 다시 로그인할 때까지 서버와 동기화되지 않습니다. 데이터 손실을 방지하려면 로그아웃하기 전에 동기화가 완료되었는지 확인하세요(홈 화면에서 동기화 진행 상황 확인).
   - q(OUTDATED): Nextcloud 비밀번호를 어떻게 변경하나요?
-    a(OUTDATED): 서버 웹사이트로 이동하여 로그인하세요. 그런 다음 설정(Settings) > 보안(Security) > 비밀번호 변경(Change password)으로 이동합니다. 비밀번호를 변경한 후 Saber에서 로그아웃했다가 다시 로그인해야 합니다.
+    a(OUTDATED): 서버 웹사이트로 이동하여 로그인하세요. 그런 다음 설정(Settings) > 보안(Security) > 비밀번호 변경(Change password)으로 이동합니다. 비밀번호를 변경한 후 mNote에서 로그아웃했다가 다시 로그인해야 합니다.
   - q(OUTDATED): 암호화 비밀번호를 변경하려면 어떻게 해야 하나요?
     a(OUTDATED): |-
       0. 동기화가 완료되었는지 확인하세요 (홈 화면에서 동기화 진행 상황을 확인하세요).
-      1. Saber에서 로그아웃합니다.
-      2. 서버 웹사이트로 이동하여 'Saber' 폴더를 삭제합니다. 이렇게 하면 서버의 모든 메모가 삭제됩니다.
-      3. Saber에 다시 로그인합니다. 로그인할 때 새 암호화를 선택할 수 있습니다.
-      4. 다른 기기에서도 Saber에서 로그아웃했다가 다시 로그인하는 것을 잊지 마세요.
+      1. mNote에서 로그아웃합니다.
+      2. 서버 웹사이트로 이동하여 'mNote' 폴더를 삭제합니다. 이렇게 하면 서버의 모든 메모가 삭제됩니다.
+      3. mNote에 다시 로그인합니다. 로그인할 때 새 암호화를 선택할 수 있습니다.
+      4. 다른 기기에서도 mNote에서 로그아웃했다가 다시 로그인하는 것을 잊지 마세요.
   - q(OUTDATED): 계정을 삭제하려면 어떻게 해야 하나요?
     a(OUTDATED): |-
       위의 "@:profile.quickLinks.deleteAccount" 버튼을 탭하고 필요한 경우 로그인하세요.
-      공식 Saber 서버를 사용 중인 경우, 1주일의 유예 기간이 지난 후 계정이 삭제됩니다. 이 기간 동안 adilhanney@disroot.org로 연락하여 삭제를 취소할 수 있습니다.
       제3자 서버를 사용하는 경우 계정을 삭제하는 옵션이 없을 수도 있습니다. 자세한 내용은 해당 서버의 개인정보 처리방침을 참조해야 합니다.
   title(OUTDATED): 내 프로필
   logout(OUTDATED): 로그아웃
@@ -256,7 +255,7 @@ profile:
   faqTitle(OUTDATED): 자주 묻는 질문
 appInfo:
   licenseNotice(OUTDATED): |-
-    Saber 저작권 © 2022-$buildYear Adil Hanney
+    mNote (based on Saber) 저작권 © 2022-$buildYear Adil Hanney
     본 프로그램은 어떠한 보증도 제공하지 않습니다. 본 소프트웨어는 자유롭게 배포할 수 있으며 특정 조건 하에 재배포가 가능합니다.
   debug(OUTDATED): 디버그
   sponsorButton(OUTDATED): 여기를 탭하여 저를 후원하거나 더 많은 저장 공간을 구매하세요
@@ -363,7 +362,7 @@ editor:
     watchingServer(OUTDATED): 현재 서버의 업데이트를 확인 중입니다. 이 모드에서는 편집이 비활성화되어 있습니다.
     corrupted(OUTDATED): 노드를 불러오는 데 실패했습니다. 손상되었거나 아직 다운로드 중일 수 있습니다.
   versionTooNew:
-    title(OUTDATED): 이 메모는 더 새로운 버전의 Saber를 사용하여 편집되었습니다.
+    title(OUTDATED): 이 메모는 더 새로운 버전의 mNote를 사용하여 편집되었습니다.
     subtitle(OUTDATED): 이 노트를 편집하면 일부 정보가 손실될 수 있습니다. 계속하고 싶으신가요?
     allowEditing(OUTDATED): 편집 허용
   quill:

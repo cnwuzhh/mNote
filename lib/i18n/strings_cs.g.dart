@@ -69,7 +69,7 @@ class _Translations$home$cs extends Translations$home$en {
 	@override late final _Translations$home$titles$cs titles = _Translations$home$titles$cs._(_root);
 	@override late final _Translations$home$tooltips$cs tooltips = _Translations$home$tooltips$cs._(_root);
 	@override late final _Translations$home$create$cs create = _Translations$home$create$cs._(_root);
-	@override String get welcome => 'Vítejte v aplikaci Saber';
+	@override String get welcome => 'Vítejte v aplikaci mNote';
 	@override String get invalidFormat => 'Vybrali jste nepodporovaný soubor. Vyberte prosím soubor s příponou .sbn, .sbn2, .sba nebo .pdf.';
 	@override String get noFiles => 'Žádné poznámky nebyly nalezeny';
 	@override String get noPreviewAvailable => 'Náhled není k dispozici';
@@ -118,7 +118,7 @@ class _Translations$settings$cs extends Translations$settings$en {
 	];
 	@override late final _Translations$settings$reset$cs reset = _Translations$settings$reset$cs._(_root);
 	@override String get resyncEverything => 'Znovu synchronizovat všechny poznámky';
-	@override String get openDataDir => 'Otevřít složku aplikace Saber';
+	@override String get openDataDir => 'Otevřít složku aplikace mNote';
 	@override late final _Translations$settings$customDataDir$cs customDataDir = _Translations$settings$customDataDir$cs._(_root);
 	@override String get autosaveDisabled => 'Nikdy';
 	@override String get shapeRecognitionDisabled => 'Nikdy';
@@ -191,7 +191,7 @@ class _Translations$appInfo$cs extends Translations$appInfo$en {
 	final TranslationsCs _root; // ignore: unused_field
 
 	// Translations
-	@override String licenseNotice({required Object buildYear}) => 'Saber  Copyright © 2022-${buildYear}  Adil Hanney\nTento program je poskytován bez jakékoliv záruky. Jedná se o software poskytovaný zdarma, který je možné šířit při splnění určitých podmínek.';
+	@override String licenseNotice({required Object buildYear}) => 'mNote (based on Saber)  Copyright © 2022-${buildYear}  Adil Hanney\nTento program je poskytován bez jakékoliv záruky. Jedná se o software poskytovaný zdarma, který je možné šířit při splnění určitých podmínek.';
 	@override String get debug => 'LADÍCÍ VERZE';
 	@override String get sponsorButton => 'Klepněte sem, pokud mě chcete sponzorovat nebo si přikoupit úložiště';
 	@override String get licenseButton => 'Klepněte sem pro zobrazení podrobnějších licenčních informací';
@@ -408,7 +408,7 @@ class _Translations$sentry$consent$cs extends Translations$sentry$consent$en {
 	final TranslationsCs _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Chcete pomoct vylepšit aplikaci Saber?';
+	@override String get title => 'Chcete pomoct vylepšit aplikaci mNote?';
 	@override late final _Translations$sentry$consent$description$cs description = _Translations$sentry$consent$description$cs._(_root);
 	@override late final _Translations$sentry$consent$answers$cs answers = _Translations$sentry$consent$answers$cs._(_root);
 }
@@ -440,7 +440,7 @@ class _Translations$settings$prefLabels$cs extends Translations$settings$prefLab
 	@override String get layoutSize => 'Rozvržení uživatelského rozhraní';
 	@override String get customAccentColor => 'Vlastní barevný odstín';
 	@override String get hyperlegibleFont => 'Lépe čitelný font';
-	@override String get shouldCheckForUpdates => 'Automaticky kontrolovat dostupnost aktualizací aplikace Saber';
+	@override String get shouldCheckForUpdates => 'Automaticky kontrolovat dostupnost aktualizací aplikace mNote';
 	@override String get shouldAlwaysAlertForUpdates => 'Rychlejší aktualizace';
 	@override String get allowInsecureConnections => 'Povolit nezabezpečená připojení';
 	@override String get editorToolbarAlignment => 'Umístění nabídky editoru';
@@ -459,7 +459,7 @@ class _Translations$settings$prefLabels$cs extends Translations$settings$prefLab
 	@override String get autosave => 'Automatické ukládání';
 	@override String get shapeRecognitionDelay => 'Zpoždění rozpoznávání tvarů';
 	@override String get autoStraightenLines => 'Automaticky narovnávat čáry';
-	@override String get customDataDir => 'Vlastní umístění složky aplikace Saber';
+	@override String get customDataDir => 'Vlastní umístění složky aplikace mNote';
 	@override String get sentry => 'Hlášení chyb';
 }
 
@@ -471,7 +471,7 @@ class _Translations$settings$prefDescriptions$cs extends Translations$settings$p
 
 	// Translations
 	@override String get hyperlegibleFont => 'Font Atkinson Hyperlegible zvyšuje čitelnost pro čtenáře se slabým zrakem';
-	@override String get allowInsecureConnections => '(Nedoporučuje se) Povolit aplikaci Saber připojovat se k serverům se samopodepsaným/nedůvěryhodným certifikátem';
+	@override String get allowInsecureConnections => '(Nedoporučuje se) Povolit aplikaci mNote připojovat se k serverům se samopodepsaným/nedůvěryhodným certifikátem';
 	@override String get preferGreyscale => 'Pro elektronické čtečky knih s e-ink displejem';
 	@override String get autoClearWhiteboardOnExit => 'Bude synchronizováno do dalších zařízení';
 	@override String get disableEraserAfterUse => 'Po použití gumy automaticky přepnout zpět na pero';
@@ -598,7 +598,7 @@ class _Translations$login$encLoginStep$cs extends Translations$login$encLoginSte
 
 	// Translations
 	@override String get enterEncPassword => 'Pro ochranu svých dat prosím zadejte heslo pro šifrování:';
-	@override String get newToSaber => 'Poprvé v aplikaci Saber? Stačí zadat nové heslo pro šifrování.';
+	@override String get newToSaber => 'Poprvé v aplikaci mNote? Stačí zadat nové heslo pro šifrování.';
 	@override String get encPassword => 'Heslo pro šifrování';
 	@override String get encFaqTitle => 'Často kladené otázky';
 	@override String get wrongEncPassword => 'Dešifrování pomocí zadaného hesla pro šifrování selhalo. Zkuste ho prosím zadat znovu.';
@@ -640,7 +640,7 @@ class _Translations$profile$faq$1$cs extends Translations$profile$faq$1$en {
 
 	// Translations
 	@override String get q => 'Jak změním své heslo k Nextcloud účtu?';
-	@override String get a => 'Přejděte na webovou stránku vašeho serveru a přihlašte se. Poté přejděte do Nastavení > Zabezpečení > Změnit heslo. Po změně hesla se budete muset odhlásit z aplikace Saber a poté se do ní opětovně přihlásit.';
+	@override String get a => 'Přejděte na webovou stránku vašeho serveru a přihlašte se. Poté přejděte do Nastavení > Zabezpečení > Změnit heslo. Po změně hesla se budete muset odhlásit z aplikace mNote a poté se do ní opětovně přihlásit.';
 }
 
 // Path: profile.faq.2
@@ -651,7 +651,7 @@ class _Translations$profile$faq$2$cs extends Translations$profile$faq$2$en {
 
 	// Translations
 	@override String get q => 'Jak změním své heslo pro šifrování?';
-	@override String get a => '0. Ujistěte se, že byla dokončena synchronizace (průběh synchronizace uvidíte na domovské obrazovce).\n1. Odhlašte se z aplikace Saber.\n2. Přejděte na webovou stránku vašeho serveru a smažte složku „Saber“. Tím ze serveru odstraníte všechny poznámky.\n3. Opětovně se přihlašte do aplikace Saber. Při přihlašování můžete zvolit nové heslo pro šifrování.\n4. Nezapomeňte se z aplikace Saber odhlásit a opětovně se do ní přihlásit na ostatních zařízeních.';
+	@override String get a => '0. Ujistěte se, že byla dokončena synchronizace (průběh synchronizace uvidíte na domovské obrazovce).\n1. Odhlašte se z aplikace mNote.\n2. Přejděte na webovou stránku vašeho serveru a smažte složku „mNote“. Tím ze serveru odstraníte všechny poznámky.\n3. Opětovně se přihlašte do aplikace mNote. Při přihlašování můžete zvolit nové heslo pro šifrování.\n4. Nezapomeňte se z aplikace mNote odhlásit a opětovně se do ní přihlásit na ostatních zařízeních.';
 }
 
 // Path: profile.faq.3
@@ -662,7 +662,7 @@ class _Translations$profile$faq$3$cs extends Translations$profile$faq$3$en {
 
 	// Translations
 	@override String get q => 'Jak odstraním svůj účet?';
-	@override String get a => 'Klepněte na tlačítko „${_root.profile.quickLinks.deleteAccount}“ umístěné výše a přihlašte se, pokud to bude vyžadováno.\nPokud používáte oficiální server od aplikace Saber, bude váš účet odstraněn po uplynutí týdenní ochranné lhůty. Během této lhůty mě můžete kontaktovat pro odvolání zrušení účtu na adilhanney@disroot.org.\nPokud používáte server třetí strany, nemusí nabízet možnost odstranění účtu: pro více informací se bude třeba obrátit na zásady ochrany osobních údajů daného serveru.';
+	@override String get a => 'Klepněte na tlačítko „${_root.profile.quickLinks.deleteAccount}“ umístěné výše a přihlašte se, pokud to bude vyžadováno.\nPokud používáte server třetí strany, nemusí nabízet možnost odstranění účtu: pro více informací se bude třeba obrátit na zásady ochrany osobních údajů daného serveru.';
 }
 
 // Path: editor.toolbar
@@ -826,7 +826,7 @@ class _Translations$editor$versionTooNew$cs extends Translations$editor$versionT
 	final TranslationsCs _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Tato poznámka byla upravena v novější verzi aplikace Saber';
+	@override String get title => 'Tato poznámka byla upravena v novější verzi aplikace mNote';
 	@override String get subtitle => 'Úpravou této poznámky můžete přijít o některé informace. Přejete tuto skutečnost ignorovat a přesto pokračovat k úpravě poznámky?';
 	@override String get allowEditing => 'Povolit úpravy';
 }
@@ -918,7 +918,7 @@ class _Translations$login$ncLoginStep$loginFlow$cs extends Translations$login$nc
 	final TranslationsCs _root; // ignore: unused_field
 
 	// Translations
-	@override String get pleaseAuthorize => 'Autorizujte prosím aplikaci Saber k přístupu na váš Nextcloud účet';
+	@override String get pleaseAuthorize => 'Autorizujte prosím aplikaci mNote k přístupu na váš Nextcloud účet';
 	@override String get followPrompts => 'Následujte prosím kroky v rozhraní Nextcloud serveru';
 	@override String get browserDidntOpen => 'Neotevřela se přihlašovací stránka? Klepněte zde';
 }
@@ -942,7 +942,7 @@ class _Translations$login$encLoginStep$encFaq$1$cs extends Translations$login$en
 
 	// Translations
 	@override String get q => 'Ještě jsem heslo pro šifrování nenastavoval. Kde ho získám?';
-	@override String get a => 'Zvolte si nové heslo pro šifrování a zadejte ho výše.\nAplikace Saber z hesla automaticky vygeneruje šifrovací klíče.';
+	@override String get a => 'Zvolte si nové heslo pro šifrování a zadejte ho výše.\nAplikace mNote z hesla automaticky vygeneruje šifrovací klíče.';
 }
 
 // Path: login.encLoginStep.encFaq.2

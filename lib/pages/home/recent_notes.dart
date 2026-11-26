@@ -13,7 +13,6 @@ import 'package:saber/components/home/move_note_button.dart';
 import 'package:saber/components/home/new_note_button.dart';
 import 'package:saber/components/home/rename_note_button.dart';
 import 'package:saber/components/home/syncing_button.dart';
-import 'package:saber/components/home/welcome.dart';
 import 'package:saber/components/theming/saber_theme.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
 import 'package:saber/data/prefs.dart';
@@ -140,7 +139,8 @@ class _RecentPageState extends State<RecentPage> {
             ),
           ),
           if (failed) ...[
-            const SliverSafeArea(sliver: SliverToBoxAdapter(child: Welcome())),
+            // mNote: no welcome screen; an empty Recent page stays empty.
+            const SliverToBoxAdapter(child: SizedBox.shrink()),
           ] else ...[
             SliverSafeArea(
               minimum: const .only(

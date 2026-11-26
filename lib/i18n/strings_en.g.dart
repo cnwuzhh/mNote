@@ -78,8 +78,8 @@ class Translations$home$en {
 	late final Translations$home$tooltips$en tooltips = Translations$home$tooltips$en.internal(_root);
 	late final Translations$home$create$en create = Translations$home$create$en.internal(_root);
 
-	/// en: 'Welcome to Saber'
-	String get welcome => 'Welcome to Saber';
+	/// en: 'Welcome to mNote'
+	String get welcome => 'Welcome to mNote';
 
 	/// en: 'The file you selected is not supported. Please select an sbn, sbn2, sba, or pdf file.'
 	String get invalidFormat => 'The file you selected is not supported. Please select an sbn, sbn2, sba, or pdf file.';
@@ -148,8 +148,8 @@ class Translations$settings$en {
 	/// en: 'Resync everything'
 	String get resyncEverything => 'Resync everything';
 
-	/// en: 'Open Saber folder'
-	String get openDataDir => 'Open Saber folder';
+	/// en: 'Open mNote folder'
+	String get openDataDir => 'Open mNote folder';
 
 	late final Translations$settings$customDataDir$en customDataDir = Translations$settings$customDataDir$en.internal(_root);
 
@@ -260,8 +260,8 @@ class Translations$appInfo$en {
 
 	// Translations
 
-	/// en: 'Saber Copyright © 2022-$buildYear Adil Hanney This program comes with absolutely no warranty. This is free software, and you are welcome to redistribute it under certain conditions.'
-	String licenseNotice({required Object buildYear}) => 'Saber  Copyright © 2022-${buildYear}  Adil Hanney\nThis program comes with absolutely no warranty. This is free software, and you are welcome to redistribute it under certain conditions.';
+	/// en: 'mNote (based on Saber) Copyright © 2022-$buildYear Adil Hanney This program comes with absolutely no warranty. This is free software, and you are welcome to redistribute it under certain conditions.'
+	String licenseNotice({required Object buildYear}) => 'mNote (based on Saber)  Copyright © 2022-${buildYear}  Adil Hanney\nThis program comes with absolutely no warranty. This is free software, and you are welcome to redistribute it under certain conditions.';
 
 	/// en: 'DEBUG'
 	String get debug => 'DEBUG';
@@ -611,8 +611,8 @@ class Translations$sentry$consent$en {
 
 	// Translations
 
-	/// en: 'Help improve Saber?'
-	String get title => 'Help improve Saber?';
+	/// en: 'Help improve mNote?'
+	String get title => 'Help improve mNote?';
 
 	late final Translations$sentry$consent$description$en description = Translations$sentry$consent$description$en.internal(_root);
 	late final Translations$sentry$consent$answers$en answers = Translations$sentry$consent$answers$en.internal(_root);
@@ -668,8 +668,8 @@ class Translations$settings$prefLabels$en {
 	/// en: 'Atkinson Hyperlegible font'
 	String get hyperlegibleFont => 'Atkinson Hyperlegible font';
 
-	/// en: 'Check for Saber updates'
-	String get shouldCheckForUpdates => 'Check for Saber updates';
+	/// en: 'Check for mNote updates'
+	String get shouldCheckForUpdates => 'Check for mNote updates';
 
 	/// en: 'Faster updates'
 	String get shouldAlwaysAlertForUpdates => 'Faster updates';
@@ -725,8 +725,8 @@ class Translations$settings$prefLabels$en {
 	/// en: 'Auto straighten lines'
 	String get autoStraightenLines => 'Auto straighten lines';
 
-	/// en: 'Custom Saber folder'
-	String get customDataDir => 'Custom Saber folder';
+	/// en: 'Custom mNote folder'
+	String get customDataDir => 'Custom mNote folder';
 
 	/// en: 'Error reporting'
 	String get sentry => 'Error reporting';
@@ -743,8 +743,8 @@ class Translations$settings$prefDescriptions$en {
 	/// en: 'Increases legibility for users with low vision'
 	String get hyperlegibleFont => 'Increases legibility for users with low vision';
 
-	/// en: '(Not recommended) Allow Saber to connect to servers with self-signed/untrusted certificates'
-	String get allowInsecureConnections => '(Not recommended) Allow Saber to connect to servers with self-signed/untrusted certificates';
+	/// en: '(Not recommended) Allow mNote to connect to servers with self-signed/untrusted certificates'
+	String get allowInsecureConnections => '(Not recommended) Allow mNote to connect to servers with self-signed/untrusted certificates';
 
 	/// en: 'For e-ink displays'
 	String get preferGreyscale => 'For e-ink displays';
@@ -951,8 +951,8 @@ class Translations$login$encLoginStep$en {
 	/// en: 'To protect your data, please enter your encryption password:'
 	String get enterEncPassword => 'To protect your data, please enter your encryption password:';
 
-	/// en: 'New to Saber? Just enter a new encryption password.'
-	String get newToSaber => 'New to Saber? Just enter a new encryption password.';
+	/// en: 'New to mNote? Just enter a new encryption password.'
+	String get newToSaber => 'New to mNote? Just enter a new encryption password.';
 
 	/// en: 'Encryption password'
 	String get encPassword => 'Encryption password';
@@ -1014,8 +1014,8 @@ class Translations$profile$faq$1$en {
 	/// en: 'How do I change my Nextcloud password?'
 	String get q => 'How do I change my Nextcloud password?';
 
-	/// en: 'Go to your server website and log in. Then go to Settings > Security > Change password. You'll need to log out and log back in to Saber after changing your password.'
-	String get a => 'Go to your server website and log in. Then go to Settings > Security > Change password. You\'ll need to log out and log back in to Saber after changing your password.';
+	/// en: 'Go to your server website and log in. Then go to Settings > Security > Change password. You'll need to log out and log back in to mNote after changing your password.'
+	String get a => 'Go to your server website and log in. Then go to Settings > Security > Change password. You\'ll need to log out and log back in to mNote after changing your password.';
 }
 
 // Path: profile.faq.2
@@ -1029,8 +1029,8 @@ class Translations$profile$faq$2$en {
 	/// en: 'How do I change my encryption password?'
 	String get q => 'How do I change my encryption password?';
 
-	/// en: '0. Make sure syncing is complete (see the sync progress on the home screen). 1. Log out of Saber. 2. Go to your server website and delete your 'Saber' folder. This will delete all your notes from the server. 3. Log back in to Saber. You can choose a new encryption password when logging in. 4. Don't forget to log out and log back in to Saber on your other devices too.'
-	String get a => '0. Make sure syncing is complete (see the sync progress on the home screen).\n1. Log out of Saber.\n2. Go to your server website and delete your \'Saber\' folder. This will delete all your notes from the server.\n3. Log back in to Saber. You can choose a new encryption password when logging in.\n4. Don\'t forget to log out and log back in to Saber on your other devices too.';
+	/// en: '0. Make sure syncing is complete (see the sync progress on the home screen). 1. Log out of mNote. 2. Go to your server website and delete your 'mNote' folder. This will delete all your notes from the server. 3. Log back in to mNote. You can choose a new encryption password when logging in. 4. Don't forget to log out and log back in to mNote on your other devices too.'
+	String get a => '0. Make sure syncing is complete (see the sync progress on the home screen).\n1. Log out of mNote.\n2. Go to your server website and delete your \'mNote\' folder. This will delete all your notes from the server.\n3. Log back in to mNote. You can choose a new encryption password when logging in.\n4. Don\'t forget to log out and log back in to mNote on your other devices too.';
 }
 
 // Path: profile.faq.3
@@ -1044,8 +1044,8 @@ class Translations$profile$faq$3$en {
 	/// en: 'How can I delete my account?'
 	String get q => 'How can I delete my account?';
 
-	/// en: 'Tap on the "Delete account" button above, and login if needed. If you are using the official Saber server, your account will be deleted after a 1 week grace period. You can contact me at adilhanney@disroot.org during this period to cancel the deletion. If you are using a third party server, there might not be an option to delete your account: you'll need to consult the server's privacy policy for more information.'
-	String get a => 'Tap on the "${_root.profile.quickLinks.deleteAccount}" button above, and login if needed.\nIf you are using the official Saber server, your account will be deleted after a 1 week grace period. You can contact me at adilhanney@disroot.org during this period to cancel the deletion.\nIf you are using a third party server, there might not be an option to delete your account: you\'ll need to consult the server\'s privacy policy for more information.';
+	/// en: 'Tap on the "Delete account" button above, and login if needed. If you are using a third party server, there might not be an option to delete your account: you'll need to consult the server's privacy policy for more information.'
+	String get a => 'Tap on the "${_root.profile.quickLinks.deleteAccount}" button above, and login if needed.\nIf you are using a third party server, there might not be an option to delete your account: you\'ll need to consult the server\'s privacy policy for more information.';
 }
 
 // Path: editor.toolbar
@@ -1353,8 +1353,8 @@ class Translations$editor$versionTooNew$en {
 
 	// Translations
 
-	/// en: 'This note was edited using a newer version of Saber'
-	String get title => 'This note was edited using a newer version of Saber';
+	/// en: 'This note was edited using a newer version of mNote'
+	String get title => 'This note was edited using a newer version of mNote';
 
 	/// en: 'Editing this note may result in some information being lost. Do you want to ignore this and edit it anyway?'
 	String get subtitle => 'Editing this note may result in some information being lost. Do you want to ignore this and edit it anyway?';
@@ -1495,8 +1495,8 @@ class Translations$login$ncLoginStep$loginFlow$en {
 
 	// Translations
 
-	/// en: 'Please authorize Saber to access your Nextcloud account'
-	String get pleaseAuthorize => 'Please authorize Saber to access your Nextcloud account';
+	/// en: 'Please authorize mNote to access your Nextcloud account'
+	String get pleaseAuthorize => 'Please authorize mNote to access your Nextcloud account';
 
 	/// en: 'Please follow the prompts in the Nextcloud interface'
 	String get followPrompts => 'Please follow the prompts in the Nextcloud interface';
@@ -1531,8 +1531,8 @@ class Translations$login$encLoginStep$encFaq$1$en {
 	/// en: 'I haven't set an encryption password yet. Where do I get it?'
 	String get q => 'I haven\'t set an encryption password yet. Where do I get it?';
 
-	/// en: 'Choose a new encryption password and enter it above. Saber will generate your encryption keys from this password automatically.'
-	String get a => 'Choose a new encryption password and enter it above.\nSaber will generate your encryption keys from this password automatically.';
+	/// en: 'Choose a new encryption password and enter it above. mNote will generate your encryption keys from this password automatically.'
+	String get a => 'Choose a new encryption password and enter it above.\nmNote will generate your encryption keys from this password automatically.';
 }
 
 // Path: login.encLoginStep.encFaq.2

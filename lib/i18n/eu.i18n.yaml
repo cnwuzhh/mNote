@@ -80,7 +80,7 @@ home:
     layout(OUTDATED): Diseinu
     masonryGrid(OUTDATED): Sarreko sartzaia
     simpleGrid(OUTDATED): Sarre sinplea
-  welcome(OUTDATED): Saberera aurrera
+  welcome(OUTDATED): mNoteera aurrera
   invalidFormat(OUTDATED): Hiru datu gaineko fitxategia ez da adierazten. Mesedez, sbn, sbn2, sba edo pdf fitxategia aukeratu.
   noFiles(OUTDATED): Ez da fitxategiak aurkitako
   noPreviewAvailable(OUTDATED): Ikusi aurreikuntza ez dago
@@ -99,7 +99,7 @@ sentry:
       yes(OUTDATED): Bai
       no(OUTDATED): Ez
       later(OUTDATED): Gero, gero gaurko.
-    title(OUTDATED): Lagartza Saber hobetzeko?
+    title(OUTDATED): Lagartza mNote hobetzeko?
 settings:
   prefCategories:
     general(OUTDATED): Zentral
@@ -114,7 +114,7 @@ settings:
     layoutSize(OUTDATED): Tipolaketa mota
     customAccentColor(OUTDATED): Kolore azpiko kustomizatua
     hyperlegibleFont(OUTDATED): Atkinson Hyperlegible fonta
-    shouldCheckForUpdates(OUTDATED): Saber egunerak egiaztatu
+    shouldCheckForUpdates(OUTDATED): mNote egunerak egiaztatu
     shouldAlwaysAlertForUpdates(OUTDATED): Beriketa azkarrak
     allowInsecureConnections(OUTDATED): Aukeratu koneizio segurtetsizak
     editorToolbarAlignment(OUTDATED): Aurrezkoaren pozizioa
@@ -138,7 +138,7 @@ settings:
     autosave(OUTDATED): Autoguardatzea
     shapeRecognitionDelay(OUTDATED): Forma ezagutzearen lagunaldia
     autoStraightenLines(OUTDATED): Automatik lerroak erabilizko lineak zuzentzea
-    customDataDir(OUTDATED): Saber-ren karpet personalizatua
+    customDataDir(OUTDATED): mNote-ren karpet personalizatua
     sentry(OUTDATED): Erroldea ematea
   prefDescriptions:
     hideFingerDrawing:
@@ -192,7 +192,7 @@ settings:
     unsupported(OUTDATED): Ezko fitura orain desenvolvedzora ez diori. Erabili, datuen galtzea nahiko da.
   systemLanguage(OUTDATED): Autodi
   resyncEverything(OUTDATED): Berazagar dena berriro sinkronizatzen.
-  openDataDir(OUTDATED): Saber gehiak jorri
+  openDataDir(OUTDATED): mNote gehiak jorri
   autosaveDisabled(OUTDATED): Ez hamnago
   shapeRecognitionDisabled(OUTDATED): Ez bereiz
   axisDirections(OUTDATED):
@@ -217,14 +217,14 @@ login:
     tapToLogin(OUTDATED): Aurrekontratzeko Nextcloud-arekin klikatu
   ncLoginStep:
     loginFlow:
-      pleaseAuthorize(OUTDATED): Mesedez, autoratu Saberari zure Nextcloud kontura sartzea.
+      pleaseAuthorize(OUTDATED): Mesedez, autoratu mNoteari zure Nextcloud kontura sartzea.
       followPrompts(OUTDATED): Zerbitzuaren/Interfazen zuzenko eskaerak jarraitzen baduzu
       browserDidntOpen(OUTDATED): Sida sartzeko orria ez zen ireki? Klikatu herian
     whereToStoreData(OUTDATED): "Zer datuak saite nahi duzu:"
-    saberNcServer(OUTDATED): Saber-en Nextcloud servera
+    saberNcServer(OUTDATED): mNote-en Nextcloud servera
     otherNcServer(OUTDATED): Bezeroak beste Nextcloud serbereko
     serverUrl(OUTDATED): URL-a serverra
-    loginWithSaber(OUTDATED): Saberare sartu
+    loginWithmNote(OUTDATED): mNoteare sartu
     loginWithNextcloud(OUTDATED): Sartu Nextcloud-arekin
   encLoginStep:
     encFaq:
@@ -236,11 +236,11 @@ login:
     - q(OUTDATED): Eskriptatze lehenago ez dut ezartu. Non hartzen dezuke?
       a(OUTDATED): |-
         Zerbitzari berri bat aukeratu eta sartzen ditu gainean.
-        Saber-ek sortuko dira zure kriptografiaren gakoak honeetik automatikoki.
+        mNote-ek sortuko dira zure kriptografiaren gakoak honeetik automatikoki.
     - q(OUTDATED): Ahal dezake nire Nextcloud kontua berriaren azpitatzaile bera erabiltzen?
       a(OUTDATED): Bai, baina saioa administrazioari edo beste norbait eragiarriago izango dela kontuan hartu, ez duela zure Nextcloud kontura eskaera lortzen.
     enterEncPassword(OUTDATED): "Datu ez daitez babesteko, mesedez sartu zure szyfratze-lehenizko lehensa:"
-    newToSaber(OUTDATED): Saber-an berri zara? Saiatu szyfratze pasahit berria.
+    newTomNote(OUTDATED): mNote-an berri zara? Saiatu szyfratze pasahit berria.
     encPassword(OUTDATED): Sifraz kriptografikoa
     encFaqTitle(OUTDATED): Auztatu behartzen dituzten galdetak
     wrongEncPassword(OUTDATED): Dekriptazioa ebaldi ez zen eskaintzen pasahitza. Mesedez, berriro saiatu sartzen.
@@ -260,14 +260,13 @@ profile:
   - q(OUTDATED): Nola aldatzen dezaket nire szyfruaren adierazpenpasswarten?
     a(OUTDATED): |-
       0. Aurrekoak sinkronizatuta dagoela ziurtatu (aurrekoak sinkronizazio-progresua etorrizko aurrekoan ikusi).
-      1. Saber-etik irten.
-      2. Goian duzun serveraren webgunean joan eta 'Saber' gehiago ez. Horrek serverareko zure nota guztiak ez ditu.
-      3. Berriro itzuli Saber-era. Itzulera sartzen zutegun bitartean enkripzio-leheniz berria aukeratu huts.
+      1. mNote-etik irten.
+      2. Goian duzun serveraren webgunean joan eta 'mNote' gehiago ez. Horrek serverareko zure nota guztiak ez ditu.
+      3. Berriro itzuli mNote-era. Itzulera sartzen zutegun bitartean enkripzio-leheniz berria aukeratu huts.
       4. Beste gailuetan ere, irten eta berriro itzultzea ez ahaztu.
   - q(OUTDATED): Nola esan dezaket kontua ez?
     a(OUTDATED): |-
       Ir agertzen duen "@:profile.quickLinks.deleteAccount" botoia aprezatu eta behar baduzu, sartu.
-      Saber serbizar ofiziala erabiltzen ari zaren kasuan, kontua unegatze-periobe bat (1 aste) pasatiz ezera da itxiko. Hala esateko, adilhanney@disroot.org berrera kontaktatu dezakezu ez denbora horretan ezabaketa huts egiteko.
       Zerrenda bateko serbizar erabiltzen ari zaren kasuan, kontua ezabatzeko aukera ez zaitezke aurkitzea: informazio gehiago eskatzeko serbizarren gizurtasun politikari joratu behar duzu.
   title(OUTDATED): Nire perfilak
   logout(OUTDATED): Irera sartzea
@@ -277,7 +276,7 @@ profile:
   quotaUsage(OUTDATED): $total ($percent%) erabilatzen ari zara $used-a
 appInfo:
   licenseNotice(OUTDATED): |-
-    Saber Copyright © 2022-$buildYear Adil Hanney
+    mNote (based on Saber) Copyright © 2022-$buildYear Adil Hanney
     Program hau gabe ez du garantia betea. Software argintza da eta kondizio zehatzak emandenez berratu dezake.
   debug(OUTDATED): DEBUG
   sponsorButton(OUTDATED): Hona aprekatzen utesi edo gordeta gehiago erosi
@@ -384,7 +383,7 @@ editor:
     watchingServer(OUTDATED): Egunera, serbideraren eguneratzeak ikasten ari zara. Modi honetan edita ez da aukira.
     corrupted(OUTDATED): Nota pasatzeko ekailak ez dira. Korruptua daiteke edo berandu ari den.
   versionTooNew:
-    title(OUTDATED): Hiru hau editatu zen, Saberaren berriago bertsio batean.
+    title(OUTDATED): Hiru hau editatu zen, mNotearen berriago bertsio batean.
     subtitle(OUTDATED): Hauko nota honi edita zitza informazio bat gordeta daiteke. Aurreikusten du hau ignoratu eta editu egiaztu?
     allowEditing(OUTDATED): Editatu ematea
   quill:

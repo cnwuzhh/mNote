@@ -183,7 +183,7 @@ class const _WindowsTitleBarWrapper({required final Widget? child})
               child: SvgPicture.asset('assets/icon/icon.svg'),
             ),
             const SizedBox(width: 8),
-            const Text('Saber'),
+            const Text('mNote'),
           ],
         ),
         centerTitle: false,

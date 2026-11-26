@@ -113,7 +113,7 @@ class _Translations$settings$ko extends Translations$settings$en {
 	@override late final _Translations$settings$customDataDir$ko customDataDir = _Translations$settings$customDataDir$ko._(_root);
 	@override String get systemLanguage => '자동';
 	@override String get resyncEverything => '모든 것을 재동기화하세요';
-	@override String get openDataDir => 'Saber 폴더 열기';
+	@override String get openDataDir => 'mNote 폴더 열기';
 	@override String get autosaveDisabled => '절대 안 돼';
 	@override String get shapeRecognitionDisabled => '절대 안 돼';
 	@override List<String> get axisDirections => [
@@ -190,7 +190,7 @@ class _Translations$appInfo$ko extends Translations$appInfo$en {
 	final TranslationsKo _root; // ignore: unused_field
 
 	// Translations
-	@override String licenseNotice({required Object buildYear}) => 'Saber 저작권 © 2022-${buildYear} Adil Hanney\n본 프로그램은 어떠한 보증도 제공하지 않습니다. 본 소프트웨어는 자유롭게 배포할 수 있으며 특정 조건 하에 재배포가 가능합니다.';
+	@override String licenseNotice({required Object buildYear}) => 'mNote (based on Saber) 저작권 © 2022-${buildYear} Adil Hanney\n본 프로그램은 어떠한 보증도 제공하지 않습니다. 본 소프트웨어는 자유롭게 배포할 수 있으며 특정 조건 하에 재배포가 가능합니다.';
 	@override String get debug => '디버그';
 	@override String get sponsorButton => '여기를 탭하여 저를 후원하거나 더 많은 저장 공간을 구매하세요';
 	@override String get licenseButton => '여기를 탭하여 더 많은 라이선스 정보를 확인하세요';
@@ -409,7 +409,7 @@ class _Translations$sentry$consent$ko extends Translations$sentry$consent$en {
 	// Translations
 	@override late final _Translations$sentry$consent$description$ko description = _Translations$sentry$consent$description$ko._(_root);
 	@override late final _Translations$sentry$consent$answers$ko answers = _Translations$sentry$consent$answers$ko._(_root);
-	@override String get title => 'Saber를 개선하는 데 도움을 주세요?';
+	@override String get title => 'mNote를 개선하는 데 도움을 주세요?';
 }
 
 // Path: settings.prefCategories
@@ -439,7 +439,7 @@ class _Translations$settings$prefLabels$ko extends Translations$settings$prefLab
 	@override String get layoutSize => '레이아웃 유형';
 	@override String get customAccentColor => '사용자 지정 강조 색상';
 	@override String get hyperlegibleFont => '애트킨슨 하이퍼레지블 폰트';
-	@override String get shouldCheckForUpdates => 'Saber 업데이트 확인하기';
+	@override String get shouldCheckForUpdates => 'mNote 업데이트 확인하기';
 	@override String get shouldAlwaysAlertForUpdates => '더 빠른 업데이트';
 	@override String get allowInsecureConnections => '보안되지 않은 연결 허용';
 	@override String get editorToolbarAlignment => '툴바 위치';
@@ -472,7 +472,7 @@ class _Translations$settings$prefDescriptions$ko extends Translations$settings$p
 	@override late final _Translations$settings$prefDescriptions$hideFingerDrawing$ko hideFingerDrawing = _Translations$settings$prefDescriptions$hideFingerDrawing$ko._(_root);
 	@override late final _Translations$settings$prefDescriptions$sentry$ko sentry = _Translations$settings$prefDescriptions$sentry$ko._(_root);
 	@override String get hyperlegibleFont => '저시력 사용자를 위한 가독성 향상';
-	@override String get allowInsecureConnections => '(권장하지 않음) Saber가 자체 서명된/신뢰할 수 없는 인증서가 있는 서버에 연결하도록 허용합니다.';
+	@override String get allowInsecureConnections => '(권장하지 않음) mNote가 자체 서명된/신뢰할 수 없는 인증서가 있는 서버에 연결하도록 허용합니다.';
 	@override String get preferGreyscale => '전자 잉크 디스플레이용으로';
 	@override String get autoClearWhiteboardOnExit => '앱을 종료하면 화이트보드를 지웁니다.';
 	@override String get disableEraserAfterUse => '지우개 사용 후 자동으로 펜으로 돌아갑니다.';
@@ -582,10 +582,10 @@ class _Translations$login$ncLoginStep$ko extends Translations$login$ncLoginStep$
 	// Translations
 	@override late final _Translations$login$ncLoginStep$loginFlow$ko loginFlow = _Translations$login$ncLoginStep$loginFlow$ko._(_root);
 	@override String get whereToStoreData => '데이터를 어디에 저장할지 선택하세요:';
-	@override String get saberNcServer => 'Saber의 Nextcloud 서버';
+	@override String get saberNcServer => 'mNote의 Nextcloud 서버';
 	@override String get otherNcServer => '다른 Nextcloud 서버';
 	@override String get serverUrl => '서버 URL';
-	@override String get loginWithSaber => 'Saber로 로그인하기';
+	@override String get loginWithmNote => 'mNote로 로그인하기';
 	@override String get loginWithNextcloud => 'Nextcloud로 로그인하기';
 }
 
@@ -602,7 +602,7 @@ class _Translations$login$encLoginStep$ko extends Translations$login$encLoginSte
 		_Translations$login$encLoginStep$encFaq$2$ko._(_root),
 	];
 	@override String get enterEncPassword => '데이터를 보호하려면 암호화 비밀번호를 입력하십시오:';
-	@override String get newToSaber => 'Saber를 처음 사용하시나요? 새 암호만 입력하세요.';
+	@override String get newTomNote => 'mNote를 처음 사용하시나요? 새 암호만 입력하세요.';
 	@override String get encPassword => '암호화 비밀번호';
 	@override String get encFaqTitle => '자주 묻는 질문';
 	@override String get wrongEncPassword => '제공된 비밀번호로 복호화에 실패했습니다. 다시 입력해 주세요.';
@@ -639,7 +639,7 @@ class _Translations$profile$faq$1$ko extends Translations$profile$faq$1$en {
 
 	// Translations
 	@override String get q => 'Nextcloud 비밀번호를 어떻게 변경하나요?';
-	@override String get a => '서버 웹사이트로 이동하여 로그인하세요. 그런 다음 설정(Settings) > 보안(Security) > 비밀번호 변경(Change password)으로 이동합니다. 비밀번호를 변경한 후 Saber에서 로그아웃했다가 다시 로그인해야 합니다.';
+	@override String get a => '서버 웹사이트로 이동하여 로그인하세요. 그런 다음 설정(Settings) > 보안(Security) > 비밀번호 변경(Change password)으로 이동합니다. 비밀번호를 변경한 후 mNote에서 로그아웃했다가 다시 로그인해야 합니다.';
 }
 
 // Path: profile.faq.2
@@ -650,7 +650,7 @@ class _Translations$profile$faq$2$ko extends Translations$profile$faq$2$en {
 
 	// Translations
 	@override String get q => '암호화 비밀번호를 변경하려면 어떻게 해야 하나요?';
-	@override String get a => '0. 동기화가 완료되었는지 확인하세요 (홈 화면에서 동기화 진행 상황을 확인하세요).\n1. Saber에서 로그아웃합니다.\n2. 서버 웹사이트로 이동하여 \'Saber\' 폴더를 삭제합니다. 이렇게 하면 서버의 모든 메모가 삭제됩니다.\n3. Saber에 다시 로그인합니다. 로그인할 때 새 암호화를 선택할 수 있습니다.\n4. 다른 기기에서도 Saber에서 로그아웃했다가 다시 로그인하는 것을 잊지 마세요.';
+	@override String get a => '0. 동기화가 완료되었는지 확인하세요 (홈 화면에서 동기화 진행 상황을 확인하세요).\n1. mNote에서 로그아웃합니다.\n2. 서버 웹사이트로 이동하여 \'mNote\' 폴더를 삭제합니다. 이렇게 하면 서버의 모든 메모가 삭제됩니다.\n3. mNote에 다시 로그인합니다. 로그인할 때 새 암호화를 선택할 수 있습니다.\n4. 다른 기기에서도 mNote에서 로그아웃했다가 다시 로그인하는 것을 잊지 마세요.';
 }
 
 // Path: profile.faq.3
@@ -661,7 +661,7 @@ class _Translations$profile$faq$3$ko extends Translations$profile$faq$3$en {
 
 	// Translations
 	@override String get q => '계정을 삭제하려면 어떻게 해야 하나요?';
-	@override String get a => '위의 "${_root.profile.quickLinks.deleteAccount}" 버튼을 탭하고 필요한 경우 로그인하세요.\n공식 Saber 서버를 사용 중인 경우, 1주일의 유예 기간이 지난 후 계정이 삭제됩니다. 이 기간 동안 adilhanney@disroot.org로 연락하여 삭제를 취소할 수 있습니다.\n제3자 서버를 사용하는 경우 계정을 삭제하는 옵션이 없을 수도 있습니다. 자세한 내용은 해당 서버의 개인정보 처리방침을 참조해야 합니다.';
+	@override String get a => '위의 "${_root.profile.quickLinks.deleteAccount}" 버튼을 탭하고 필요한 경우 로그인하세요.\n제3자 서버를 사용하는 경우 계정을 삭제하는 옵션이 없을 수도 있습니다. 자세한 내용은 해당 서버의 개인정보 처리방침을 참조해야 합니다.';
 }
 
 // Path: editor.toolbar
@@ -825,7 +825,7 @@ class _Translations$editor$versionTooNew$ko extends Translations$editor$versionT
 	final TranslationsKo _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => '이 메모는 더 새로운 버전의 Saber를 사용하여 편집되었습니다.';
+	@override String get title => '이 메모는 더 새로운 버전의 mNote를 사용하여 편집되었습니다.';
 	@override String get subtitle => '이 노트를 편집하면 일부 정보가 손실될 수 있습니다. 계속하고 싶으신가요?';
 	@override String get allowEditing => '편집 허용';
 }
@@ -916,7 +916,7 @@ class _Translations$login$ncLoginStep$loginFlow$ko extends Translations$login$nc
 	final TranslationsKo _root; // ignore: unused_field
 
 	// Translations
-	@override String get pleaseAuthorize => 'Saber에게 귀하의 Nextcloud 계정에 액세스할 수 있는 권한을 부여해 주세요.';
+	@override String get pleaseAuthorize => 'mNote에게 귀하의 Nextcloud 계정에 액세스할 수 있는 권한을 부여해 주세요.';
 	@override String get followPrompts => 'Nextcloud 인터페이스의 프롬프트를 따르세요';
 	@override String get browserDidntOpen => '로그인 페이지가 열리지 않았나요? 여기를 클릭하세요';
 }
@@ -940,7 +940,7 @@ class _Translations$login$encLoginStep$encFaq$1$ko extends Translations$login$en
 
 	// Translations
 	@override String get q => '아직 암호화 비밀번호를 설정하지 않았습니다. 어디서 받을 수 있나요?';
-	@override String get a => '새로운 암호화 비밀번호를 선택하고 위에 입력하세요.\nSaber가 이 비밀번호로부터 암호화 키를 자동으로 생성할 것입니다.';
+	@override String get a => '새로운 암호화 비밀번호를 선택하고 위에 입력하세요.\nmNote가 이 비밀번호로부터 암호화 키를 자동으로 생성할 것입니다.';
 }
 
 // Path: login.encLoginStep.encFaq.2

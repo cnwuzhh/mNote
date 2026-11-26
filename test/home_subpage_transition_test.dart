@@ -17,7 +17,8 @@ void main() {
         final router = GoRouter(
           // mNote: the app now opens on the study sets tab; this test is
           // about the Recent -> Settings transition, so start on Recent.
-          initialLocation: '${RoutePaths.prefixOfHome}/${HomePage.recentSubpage}',
+          initialLocation:
+              '${RoutePaths.prefixOfHome}/${HomePage.recentSubpage}',
           routes: [
             GoRoute(
               path: RoutePaths.home,
@@ -44,7 +45,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
 
         expect(
-          [find.text('Welcome to Saber'), find.text('Logged out')],
+          [find.text('Recent notes'), find.text('Logged out')],
           [findsOneWidget, findsOneWidget],
         );
       });

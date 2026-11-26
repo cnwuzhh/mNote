@@ -19,7 +19,7 @@ extension NextcloudClientExtension on NextcloudClient {
   );
 
   static final userAgent =
-      'Saber/$buildName '
+      'mNote/$buildName '
       '(${Platform.operatingSystem}) '
       'Dart/${Platform.version.split(' ').first}';
   static IOClient newHttpClient() =>

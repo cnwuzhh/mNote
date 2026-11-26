@@ -13,15 +13,11 @@ import 'package:saber/data/nextcloud/login_flow.dart';
 import 'package:saber/data/nextcloud/nextcloud_client_extension.dart';
 import 'package:saber/data/prefs.dart';
 import 'package:saber/i18n/strings.g.dart';
-import 'package:saber/pages/user/login.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _width = 400.0;
 
 /// Lighter than the actual Saber color for better contrast
-const _saberColor = Color(0xFFffd642);
-const _onSaberColor = Colors.black;
-const _saberColorDarkened = Color(0xFFc29800);
 const _ncColor = Color(0xFF0082c9);
 
 class NcLoginStep extends HookWidget {
@@ -104,12 +100,6 @@ class NcLoginStep extends HookWidget {
                           mainAxisSize: .min,
                           spacing: 48,
                           children: [
-                            _LoginWithSaber(
-                              login: () => loginFlow.value = _createLoginFlow(
-                                context,
-                                NextcloudClientExtension.defaultNextcloudUri,
-                              ),
-                            ),
                             _LoginWithNextcloud(
                               login: (url) => loginFlow.value =
                                   _createLoginFlow(context, Uri.parse(url)),
@@ -142,13 +132,6 @@ class NcLoginStep extends HookWidget {
           children: [
             const SizedBox(height: 16),
             _Header(shouldUseTwoColumns: shouldUseTwoColumns),
-            const SizedBox(height: 32),
-            _LoginWithSaber(
-              login: () => loginFlow.value = _createLoginFlow(
-                context,
-                NextcloudClientExtension.defaultNextcloudUri,
-              ),
-            ),
             const SizedBox(height: 32),
             _LoginWithNextcloud(
               login: (url) =>
@@ -217,60 +200,6 @@ class const _HeaderImage({required final bool shouldUseTwoColumns})
         height: min(_width * 576 / 844.6693, maxHeight),
         excludeFromSemantics: true,
       ),
-    );
-  }
-}
-
-class const _LoginWithSaber({required final VoidCallback login})
-    extends HookWidget {
-  @override
-  Widget build(BuildContext context) {
-    final buttonStyle = useMemoized(
-      () => _buttonStyleFromBrand(_saberColor, _onSaberColor),
-      const [],
-    );
-
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: .stretch,
-      children: [
-        Row(
-          mainAxisAlignment: .end,
-          children: [
-            SvgPicture.asset('assets/icon/icon.svg', width: 32, height: 32),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                t.login.ncLoginStep.saberNcServer,
-                style: theme.textTheme.headlineSmall,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: login,
-          style: buttonStyle,
-          child: Text(t.login.ncLoginStep.loginWithSaber),
-        ),
-        const SizedBox(height: 4),
-        Text.rich(
-          t.login.signup(
-            linkToSignup: (text) => TextSpan(
-              text: text,
-              style: TextStyle(
-                color: theme.colorScheme.brightness == .dark
-                    ? _saberColor
-                    : _saberColorDarkened,
-              ),
-              recognizer: TapGestureRecognizer()
-                ..onTap = () {
-                  launchUrl(NcLoginPage.signupUrl);
-                },
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

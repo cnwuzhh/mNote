@@ -77,7 +77,7 @@ class _Translations$home$eu extends Translations$home$en {
 	@override late final _Translations$home$deleteFolder$eu deleteFolder = _Translations$home$deleteFolder$eu._(_root);
 	@override late final _Translations$home$sort$eu sort = _Translations$home$sort$eu._(_root);
 	@override late final _Translations$home$layout$eu layout = _Translations$home$layout$eu._(_root);
-	@override String get welcome => 'Saberera aurrera';
+	@override String get welcome => 'mNoteera aurrera';
 	@override String get invalidFormat => 'Hiru datu gaineko fitxategia ez da adierazten. Mesedez, sbn, sbn2, sba edo pdf fitxategia aukeratu.';
 	@override String get noFiles => 'Ez da fitxategiak aurkitako';
 	@override String get noPreviewAvailable => 'Ikusi aurreikuntza ez dago';
@@ -113,7 +113,7 @@ class _Translations$settings$eu extends Translations$settings$en {
 	@override late final _Translations$settings$customDataDir$eu customDataDir = _Translations$settings$customDataDir$eu._(_root);
 	@override String get systemLanguage => 'Autodi';
 	@override String get resyncEverything => 'Berazagar dena berriro sinkronizatzen.';
-	@override String get openDataDir => 'Saber gehiak jorri';
+	@override String get openDataDir => 'mNote gehiak jorri';
 	@override String get autosaveDisabled => 'Ez hamnago';
 	@override String get shapeRecognitionDisabled => 'Ez bereiz';
 	@override List<String> get axisDirections => [
@@ -190,7 +190,7 @@ class _Translations$appInfo$eu extends Translations$appInfo$en {
 	final TranslationsEu _root; // ignore: unused_field
 
 	// Translations
-	@override String licenseNotice({required Object buildYear}) => 'Saber Copyright © 2022-${buildYear} Adil Hanney\nProgram hau gabe ez du garantia betea. Software argintza da eta kondizio zehatzak emandenez berratu dezake.';
+	@override String licenseNotice({required Object buildYear}) => 'mNote (based on Saber) Copyright © 2022-${buildYear} Adil Hanney\nProgram hau gabe ez du garantia betea. Software argintza da eta kondizio zehatzak emandenez berratu dezake.';
 	@override String get debug => 'DEBUG';
 	@override String get sponsorButton => 'Hona aprekatzen utesi edo gordeta gehiago erosi';
 	@override String get licenseButton => 'Hiru honetan klikatu erakunde informazio gehiago ikusteko';
@@ -409,7 +409,7 @@ class _Translations$sentry$consent$eu extends Translations$sentry$consent$en {
 	// Translations
 	@override late final _Translations$sentry$consent$description$eu description = _Translations$sentry$consent$description$eu._(_root);
 	@override late final _Translations$sentry$consent$answers$eu answers = _Translations$sentry$consent$answers$eu._(_root);
-	@override String get title => 'Lagartza Saber hobetzeko?';
+	@override String get title => 'Lagartza mNote hobetzeko?';
 }
 
 // Path: settings.prefCategories
@@ -439,7 +439,7 @@ class _Translations$settings$prefLabels$eu extends Translations$settings$prefLab
 	@override String get layoutSize => 'Tipolaketa mota';
 	@override String get customAccentColor => 'Kolore azpiko kustomizatua';
 	@override String get hyperlegibleFont => 'Atkinson Hyperlegible fonta';
-	@override String get shouldCheckForUpdates => 'Saber egunerak egiaztatu';
+	@override String get shouldCheckForUpdates => 'mNote egunerak egiaztatu';
 	@override String get shouldAlwaysAlertForUpdates => 'Beriketa azkarrak';
 	@override String get allowInsecureConnections => 'Aukeratu koneizio segurtetsizak';
 	@override String get editorToolbarAlignment => 'Aurrezkoaren pozizioa';
@@ -458,7 +458,7 @@ class _Translations$settings$prefLabels$eu extends Translations$settings$prefLab
 	@override String get autosave => 'Autoguardatzea';
 	@override String get shapeRecognitionDelay => 'Forma ezagutzearen lagunaldia';
 	@override String get autoStraightenLines => 'Automatik lerroak erabilizko lineak zuzentzea';
-	@override String get customDataDir => 'Saber-ren karpet personalizatua';
+	@override String get customDataDir => 'mNote-ren karpet personalizatua';
 	@override String get sentry => 'Erroldea ematea';
 }
 
@@ -582,10 +582,10 @@ class _Translations$login$ncLoginStep$eu extends Translations$login$ncLoginStep$
 	// Translations
 	@override late final _Translations$login$ncLoginStep$loginFlow$eu loginFlow = _Translations$login$ncLoginStep$loginFlow$eu._(_root);
 	@override String get whereToStoreData => 'Zer datuak saite nahi duzu:';
-	@override String get saberNcServer => 'Saber-en Nextcloud servera';
+	@override String get saberNcServer => 'mNote-en Nextcloud servera';
 	@override String get otherNcServer => 'Bezeroak beste Nextcloud serbereko';
 	@override String get serverUrl => 'URL-a serverra';
-	@override String get loginWithSaber => 'Saberare sartu';
+	@override String get loginWithmNote => 'mNoteare sartu';
 	@override String get loginWithNextcloud => 'Sartu Nextcloud-arekin';
 }
 
@@ -602,7 +602,7 @@ class _Translations$login$encLoginStep$eu extends Translations$login$encLoginSte
 		_Translations$login$encLoginStep$encFaq$2$eu._(_root),
 	];
 	@override String get enterEncPassword => 'Datu ez daitez babesteko, mesedez sartu zure szyfratze-lehenizko lehensa:';
-	@override String get newToSaber => 'Saber-an berri zara? Saiatu szyfratze pasahit berria.';
+	@override String get newTomNote => 'mNote-an berri zara? Saiatu szyfratze pasahit berria.';
 	@override String get encPassword => 'Sifraz kriptografikoa';
 	@override String get encFaqTitle => 'Auztatu behartzen dituzten galdetak';
 	@override String get wrongEncPassword => 'Dekriptazioa ebaldi ez zen eskaintzen pasahitza. Mesedez, berriro saiatu sartzen.';
@@ -650,7 +650,7 @@ class _Translations$profile$faq$2$eu extends Translations$profile$faq$2$en {
 
 	// Translations
 	@override String get q => 'Nola aldatzen dezaket nire szyfruaren adierazpenpasswarten?';
-	@override String get a => '0. Aurrekoak sinkronizatuta dagoela ziurtatu (aurrekoak sinkronizazio-progresua etorrizko aurrekoan ikusi).\n1. Saber-etik irten.\n2. Goian duzun serveraren webgunean joan eta \'Saber\' gehiago ez. Horrek serverareko zure nota guztiak ez ditu.\n3. Berriro itzuli Saber-era. Itzulera sartzen zutegun bitartean enkripzio-leheniz berria aukeratu huts.\n4. Beste gailuetan ere, irten eta berriro itzultzea ez ahaztu.';
+	@override String get a => '0. Aurrekoak sinkronizatuta dagoela ziurtatu (aurrekoak sinkronizazio-progresua etorrizko aurrekoan ikusi).\n1. mNote-etik irten.\n2. Goian duzun serveraren webgunean joan eta \'mNote\' gehiago ez. Horrek serverareko zure nota guztiak ez ditu.\n3. Berriro itzuli mNote-era. Itzulera sartzen zutegun bitartean enkripzio-leheniz berria aukeratu huts.\n4. Beste gailuetan ere, irten eta berriro itzultzea ez ahaztu.';
 }
 
 // Path: profile.faq.3
@@ -661,7 +661,7 @@ class _Translations$profile$faq$3$eu extends Translations$profile$faq$3$en {
 
 	// Translations
 	@override String get q => 'Nola esan dezaket kontua ez?';
-	@override String get a => 'Ir agertzen duen "${_root.profile.quickLinks.deleteAccount}" botoia aprezatu eta behar baduzu, sartu.\nSaber serbizar ofiziala erabiltzen ari zaren kasuan, kontua unegatze-periobe bat (1 aste) pasatiz ezera da itxiko. Hala esateko, adilhanney@disroot.org berrera kontaktatu dezakezu ez denbora horretan ezabaketa huts egiteko.\nZerrenda bateko serbizar erabiltzen ari zaren kasuan, kontua ezabatzeko aukera ez zaitezke aurkitzea: informazio gehiago eskatzeko serbizarren gizurtasun politikari joratu behar duzu.';
+	@override String get a => 'Ir agertzen duen "${_root.profile.quickLinks.deleteAccount}" botoia aprezatu eta behar baduzu, sartu.\nZerrenda bateko serbizar erabiltzen ari zaren kasuan, kontua ezabatzeko aukera ez zaitezke aurkitzea: informazio gehiago eskatzeko serbizarren gizurtasun politikari joratu behar duzu.';
 }
 
 // Path: editor.toolbar
@@ -825,7 +825,7 @@ class _Translations$editor$versionTooNew$eu extends Translations$editor$versionT
 	final TranslationsEu _root; // ignore: unused_field
 
 	// Translations
-	@override String get title => 'Hiru hau editatu zen, Saberaren berriago bertsio batean.';
+	@override String get title => 'Hiru hau editatu zen, mNotearen berriago bertsio batean.';
 	@override String get subtitle => 'Hauko nota honi edita zitza informazio bat gordeta daiteke. Aurreikusten du hau ignoratu eta editu egiaztu?';
 	@override String get allowEditing => 'Editatu ematea';
 }
@@ -917,7 +917,7 @@ class _Translations$login$ncLoginStep$loginFlow$eu extends Translations$login$nc
 	final TranslationsEu _root; // ignore: unused_field
 
 	// Translations
-	@override String get pleaseAuthorize => 'Mesedez, autoratu Saberari zure Nextcloud kontura sartzea.';
+	@override String get pleaseAuthorize => 'Mesedez, autoratu mNoteari zure Nextcloud kontura sartzea.';
 	@override String get followPrompts => 'Zerbitzuaren/Interfazen zuzenko eskaerak jarraitzen baduzu';
 	@override String get browserDidntOpen => 'Sida sartzeko orria ez zen ireki? Klikatu herian';
 }
@@ -941,7 +941,7 @@ class _Translations$login$encLoginStep$encFaq$1$eu extends Translations$login$en
 
 	// Translations
 	@override String get q => 'Eskriptatze lehenago ez dut ezartu. Non hartzen dezuke?';
-	@override String get a => 'Zerbitzari berri bat aukeratu eta sartzen ditu gainean.\nSaber-ek sortuko dira zure kriptografiaren gakoak honeetik automatikoki.';
+	@override String get a => 'Zerbitzari berri bat aukeratu eta sartzen ditu gainean.\nmNote-ek sortuko dira zure kriptografiaren gakoak honeetik automatikoki.';
 }
 
 // Path: login.encLoginStep.encFaq.2
