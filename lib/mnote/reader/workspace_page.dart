@@ -118,8 +118,11 @@ class _WorkspacePageState extends State<WorkspacePage>
     _removeSearchListener = searcher.addListener(_onViewChanged);
     doc.lastOpened = DateTime.now();
     store.touch(set);
-    InkDocument.load(store.inkFile(set, doc)).then((d) {
+    InkDocument.loadOrQuarantine(store.inkFile(set, doc)).then((d) {
       if (!mounted) return;
+      if (d.recoveredFromDamage) {
+        _toast('这份文档的笔迹文件已损坏：已另存备份，笔迹从空白开始');
+      }
       d.history.addListener(_onViewChanged);
       setState(() => ink = d);
       _repaintPages();
@@ -128,7 +131,22 @@ class _WorkspacePageState extends State<WorkspacePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) store.flush();
+    if (state != AppLifecycleState.resumed) {
+      store.flush();
+      _saveInkNow();
+    }
+  }
+
+  /// Writes pending handwriting immediately (leaving the app / the page).
+  void _saveInkNow() {
+    if (!(_inkSave?.isActive ?? false)) return;
+    _inkSave!.cancel();
+    final d = ink;
+    if (d != null) {
+      d
+          .save(store.inkFile(set, doc))
+          .catchError((Object e) => _toast('笔迹保存失败：$e'));
+    }
   }
 
   @override
@@ -141,7 +159,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     ink?.history.removeListener(_onViewChanged);
     if (_inkSave?.isActive ?? false) {
       _inkSave!.cancel();
-      ink?.save(store.inkFile(set, doc));
+      ink?.save(store.inkFile(set, doc)).catchError((Object _) {});
     }
     store.flush();
     super.dispose();
@@ -240,7 +258,11 @@ class _WorkspacePageState extends State<WorkspacePage>
     _inkSave?.cancel();
     _inkSave = Timer(const Duration(milliseconds: 600), () {
       final d = ink;
-      if (d != null) d.save(store.inkFile(set, doc));
+      if (d != null) {
+        d
+            .save(store.inkFile(set, doc))
+            .catchError((Object e) => _toast('笔迹保存失败：$e'));
+      }
     });
   }
 

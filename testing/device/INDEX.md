@@ -57,6 +57,11 @@
 | TC-MAP-12 | 删除父节点后子节点上移 | P1 |  | cases/TC-40-mindmap-drag.md | 脑图拖动、删除撤销 |
 | TC-MAP-13 | 回忆模式下拖动不揭开内容 | P2 |  | cases/TC-40-mindmap-drag.md | 回忆模式 |
 | TC-MAP-14 | 夜读下拖动 | P2 |  | cases/TC-40-mindmap-drag.md | 夜读 |
+| TC-PERSIST-02 | 切到后台后被杀，数据不丢 | P0 |  | cases/TC-50-persistence.md | 持久化 |
+| TC-PERSIST-03 | 不经后台直接被杀（记录型） | P2 |  | cases/TC-50-persistence.md | 持久化 |
+| TC-PERSIST-04 | 删除的学习集不会回来 | P0 |  | cases/TC-50-persistence.md | 持久化 |
+| TC-PERSIST-05 | 损坏的笔迹文件被保留并提示 | P1 |  | cases/TC-50-persistence.md | 反持久化容错 |
+| TC-PERSIST-06 | 损坏的学习集文件不影响其他学习集 | P1 |  | cases/TC-50-persistence.md | 反持久化容错 |
 
 TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。
 

@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:saber/mnote/model/models.dart';
+import 'package:saber/mnote/store/atomic_file.dart';
 
 /// Local persistence for study sets.
 ///
@@ -21,15 +22,26 @@ class StudyStore extends ChangeNotifier {
 
   static final log = Logger('StudyStore');
 
-  static StudyStore? _instance;
+  static Future<StudyStore>? _instance;
 
-  /// The app-wide store, created on first use.
-  static Future<StudyStore> instance() async {
-    if (_instance != null) return _instance!;
+  /// The app-wide store, created on first use. Concurrent callers get the
+  /// same store (two stores over the same files would overwrite each other).
+  static Future<StudyStore> instance() => _instance ??= _create();
+
+  static Future<StudyStore> _create() async {
     final base = await getApplicationSupportDirectory();
     final store = StudyStore._(Directory('${base.path}/mnote'));
     await store.load();
-    return _instance = store;
+    // Write pending edits whenever the app leaves the foreground: Android
+    // may kill it in the background without further notice.
+    // The binding keeps the listener alive for the lifetime of the app.
+    AppLifecycleListener(
+      onInactive: store.flush,
+      onHide: store.flush,
+      onPause: store.flush,
+      onDetach: store.flush,
+    );
+    return store;
   }
 
   /// A store rooted at [dir], used by tests.
@@ -43,6 +55,10 @@ class StudyStore extends ChangeNotifier {
   final Directory rootDir;
   final List<StudySet> _sets = [];
   final Map<String, Timer> _pendingSaves = {};
+
+  /// Ids of deleted sets: later saves (an open workspace, a debounced save
+  /// already scheduled) must not bring them back.
+  final Set<String> _deleted = {};
 
   List<StudySet> get sets => List.unmodifiable(
     _sets..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
@@ -72,10 +88,10 @@ class StudyStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _saveSettings() async {
-    await _settingsFile.parent.create(recursive: true);
-    await _settingsFile.writeAsString(jsonEncode(_settings), flush: true);
-  }
+  Future<void> _saveSettings() => AtomicFile.write(
+    _settingsFile,
+    utf8.encode(jsonEncode(_settings)),
+  ).catchError((Object e) => log.warning('Could not save settings.json: $e'));
 
   File imageFile(StudySet set, String fileName) =>
       File('${_setDir(set.id).path}/images/$fileName');
@@ -103,16 +119,44 @@ class StudyStore extends ChangeNotifier {
     if (!dir.existsSync()) return;
     for (final entity in dir.listSync()) {
       if (entity is! Directory) continue;
-      final f = File('${entity.path}/set.json');
-      if (!f.existsSync()) continue;
-      try {
-        final json = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
-        _sets.add(StudySet.fromJson(json));
-      } catch (e, st) {
-        log.severe('Failed to read ${f.path}', e, st);
-      }
+      final set = await _readSet(File('${entity.path}/set.json'));
+      if (set != null) _sets.add(set);
     }
     notifyListeners();
+  }
+
+  /// Reads a set from `set.json`, or from `set.json.tmp` when that is the
+  /// newer readable copy (the app stopped between writing the temp file and
+  /// renaming it) or `set.json` itself is damaged.
+  Future<StudySet?> _readSet(File f) async {
+    final tmp = File('${f.path}.tmp');
+    Future<StudySet?> parse(File file) async {
+      if (!file.existsSync()) return null;
+      try {
+        return StudySet.fromJson(
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+        );
+      } catch (e) {
+        log.severe('Cannot read ${file.path}: $e');
+        return null;
+      }
+    }
+
+    final main = await parse(f), fromTmp = await parse(tmp);
+    if (fromTmp != null &&
+        (main == null || fromTmp.updatedAt.isAfter(main.updatedAt))) {
+      log.warning('Recovered ${f.path} from its temp file');
+      try {
+        await tmp.rename(f.path);
+      } catch (_) {}
+      return fromTmp;
+    }
+    if (main == null && f.existsSync()) {
+      log.severe(
+        '${f.path} is damaged and no temp copy is readable; leaving it untouched',
+      );
+    }
+    return main;
   }
 
   StudySet? byId(String id) {
@@ -134,8 +178,11 @@ class StudyStore extends ChangeNotifier {
   }
 
   Future<void> deleteSet(StudySet set) async {
+    _deleted.add(set.id);
     _sets.remove(set);
     _pendingSaves.remove(set.id)?.cancel();
+    // Let a save that is already running finish before removing the folder.
+    await AtomicFile.idle(_setFile(set.id));
     final dir = _setDir(set.id);
     if (dir.existsSync()) await dir.delete(recursive: true);
     notifyListeners();
@@ -175,32 +222,47 @@ class StudyStore extends ChangeNotifier {
     StudySet set, {
     Duration delay = const Duration(milliseconds: 400),
   }) {
+    if (_deleted.contains(set.id)) return;
     set.updatedAt = DateTime.now();
     notifyListeners();
     _pendingSaves.remove(set.id)?.cancel();
     _pendingSaves[set.id] = Timer(delay, () {
       _pendingSaves.remove(set.id);
-      saveNow(set);
+      saveNow(set)
+          .catchError((Object e) => log.severe('Saving ${set.id} failed: $e'));
     });
   }
 
-  /// Writes [set] atomically (temp file + rename).
+  /// Writes [set] atomically. Saves of the same set run one after another
+  /// (the latest content wins); deleted sets and sets from a newer format
+  /// version are never written.
   Future<void> saveNow(StudySet set) async {
     _pendingSaves.remove(set.id)?.cancel();
-    final f = _setFile(set.id);
-    await f.parent.create(recursive: true);
-    final tmp = File('${f.path}.tmp');
-    await tmp.writeAsString(set.encode(), flush: true);
-    await tmp.rename(f.path);
+    if (_deleted.contains(set.id)) return;
+    if (set.formatVersion > StudySet.currentFormatVersion) {
+      log.warning(
+        'Not saving ${set.id}: written by a newer mNote (format ${set.formatVersion})',
+      );
+      return;
+    }
+    await AtomicFile.write(_setFile(set.id), utf8.encode(set.encode()));
   }
 
-  /// Flushes all pending saves (call when the app goes to background).
+  /// Writes all pending changes and waits until every write is on disk
+  /// (called when the app leaves the foreground and when a document closes).
   Future<void> flush() async {
     final ids = _pendingSaves.keys.toList();
     for (final id in ids) {
       final s = byId(id);
-      if (s != null) await saveNow(s);
+      if (s != null) {
+        try {
+          await saveNow(s);
+        } catch (e) {
+          log.severe('Saving $id failed: $e');
+        }
+      }
     }
+    await AtomicFile.allIdle();
   }
 
   // ---------- card operations ----------

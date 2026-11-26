@@ -2,9 +2,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bson/bson.dart';
+import 'package:logging/logging.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:saber/components/canvas/_stroke.dart';
 import 'package:saber/data/editor/editor_core_info.dart';
+import 'package:saber/mnote/store/atomic_file.dart';
 import 'package:sbn/has_size.dart';
 
 /// Handwriting on one PDF document: Saber [Stroke]s grouped by page.
@@ -134,31 +136,55 @@ class InkDocument {
       final size = Size((p['w'] as num).toDouble(), (p['h'] as num).toDouble());
       final hasSize = doc.pageSize(page, size);
       for (final s in (p['s'] as List? ?? const [])) {
-        doc._insert(
-          page,
-          Stroke.fromJson(
-            (s as Map).cast<String, dynamic>(),
-            fileVersion: version,
-            pageIndex: page - 1,
-            page: hasSize,
-          ),
-        );
+        try {
+          doc._insert(
+            page,
+            Stroke.fromJson(
+              (s as Map).cast<String, dynamic>(),
+              fileVersion: version,
+              pageIndex: page - 1,
+              page: hasSize,
+            ),
+          );
+        } catch (e) {
+          // One unreadable stroke must not lose the whole page.
+          _log.warning('Skipping unreadable stroke on page $page: $e');
+        }
       }
     }
     return doc;
   }
+
+  static final _log = Logger('InkDocument');
+
+  /// Whether this document started empty because its file was damaged
+  /// (see [loadOrQuarantine]).
+  var recoveredFromDamage = false;
 
   static Future<InkDocument> load(File f) async {
     if (!f.existsSync()) return InkDocument();
     return fromBson(await f.readAsBytes());
   }
 
-  Future<void> save(File f) async {
-    await f.parent.create(recursive: true);
-    final tmp = File('${f.path}.tmp');
-    await tmp.writeAsBytes(toBson(), flush: true);
-    await tmp.rename(f.path);
+  /// Like [load], but a damaged file is renamed to
+  /// `<file>.corrupt-<timestamp>` (kept for recovery) and an empty document
+  /// is returned, so the damaged bytes are neither lost nor overwritten.
+  static Future<InkDocument> loadOrQuarantine(File f) async {
+    try {
+      return await load(f);
+    } catch (e) {
+      final aside =
+          '${f.path}.corrupt-${DateTime.now().millisecondsSinceEpoch}';
+      _log.severe('Damaged ink file ${f.path} ($e); moved to $aside');
+      try {
+        await f.rename(aside);
+      } catch (_) {}
+      return InkDocument()..recoveredFromDamage = true;
+    }
   }
+
+  /// Atomic; saves to the same file run one after another (latest wins).
+  Future<void> save(File f) => AtomicFile.write(f, toBson());
 }
 
 class InkAction {
