@@ -75,39 +75,43 @@ class NcLoginStep extends HookWidget {
     if (shouldUseTwoColumns) {
       // Scrollable so the soft keyboard (which shrinks the body via the
       // Scaffold) does not cause a bottom overflow in landscape on tablets.
-      return LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          keyboardDismissBehavior: .onDrag,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: SafeArea(
-                minimum: const .all(64),
-                child: SizedBox(
-                  width: _width * 3,
-                  child: Row(
-                    mainAxisAlignment: .center,
-                    crossAxisAlignment: .start,
-                    spacing: 64,
-                    children: [
-                      Expanded(
-                        child: _Header(
-                          shouldUseTwoColumns: shouldUseTwoColumns,
+      return _DismissKeyboard(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            // Always draggable, so a drag closes the keyboard even when the
+            // content fits and nothing actually scrolls.
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: SafeArea(
+                  minimum: const .all(64),
+                  child: SizedBox(
+                    width: _width * 3,
+                    child: Row(
+                      mainAxisAlignment: .center,
+                      crossAxisAlignment: .start,
+                      spacing: 64,
+                      children: [
+                        Expanded(
+                          child: _Header(
+                            shouldUseTwoColumns: shouldUseTwoColumns,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: .min,
-                          spacing: 48,
-                          children: [
-                            _LoginWithNextcloud(
-                              login: (url) => loginFlow.value =
-                                  _createLoginFlow(context, Uri.parse(url)),
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: .min,
+                            spacing: 48,
+                            children: [
+                              _LoginWithNextcloud(
+                                login: (url) => loginFlow.value =
+                                    _createLoginFlow(context, Uri.parse(url)),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -120,27 +124,62 @@ class NcLoginStep extends HookWidget {
       final horizontalPadding = screenSize.width > _width
           ? (screenSize.width - _width) / 2
           : 16.0;
-      return MediaQuery.removeViewPadding(
-        context: context,
-        child: ListView(
-          padding: .only(
-            top: max(16, viewPadding.top),
-            bottom: max(16, viewPadding.bottom),
-            left: max(horizontalPadding, viewPadding.left),
-            right: max(horizontalPadding, viewPadding.right),
-          ),
-          children: [
-            const SizedBox(height: 16),
-            _Header(shouldUseTwoColumns: shouldUseTwoColumns),
-            const SizedBox(height: 32),
-            _LoginWithNextcloud(
-              login: (url) =>
-                  loginFlow.value = _createLoginFlow(context, Uri.parse(url)),
+      return _DismissKeyboard(
+        child: MediaQuery.removeViewPadding(
+          context: context,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: .only(
+              top: max(16, viewPadding.top),
+              bottom: max(16, viewPadding.bottom),
+              left: max(horizontalPadding, viewPadding.left),
+              right: max(horizontalPadding, viewPadding.right),
             ),
-          ],
+            children: [
+              const SizedBox(height: 16),
+              _Header(shouldUseTwoColumns: shouldUseTwoColumns),
+              const SizedBox(height: 32),
+              _LoginWithNextcloud(
+                login: (url) =>
+                    loginFlow.value = _createLoginFlow(context, Uri.parse(url)),
+              ),
+            ],
+          ),
         ),
       );
     }
+  }
+}
+
+/// Closes the soft keyboard when the user drags the page (in any direction,
+/// including pulling past the top, which does not scroll) or taps a blank
+/// area. `keyboardDismissBehavior: onDrag` alone only reacts to real scrolls.
+class _DismissKeyboard extends StatelessWidget {
+  const new({required this.child});
+
+  final Widget child;
+
+  static void _unfocus() => FocusManager.instance.primaryFocus?.unfocus();
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) {
+        final byUser = switch (n) {
+          ScrollStartNotification(:final dragDetails) => dragDetails != null,
+          ScrollUpdateNotification(:final dragDetails) => dragDetails != null,
+          OverscrollNotification(:final dragDetails) => dragDetails != null,
+          _ => false,
+        };
+        if (byUser) _unfocus();
+        return false;
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _unfocus,
+        child: child,
+      ),
+    );
   }
 }
 

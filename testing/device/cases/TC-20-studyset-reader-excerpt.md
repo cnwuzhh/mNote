@@ -35,7 +35,7 @@
 | 2 | 拖动结束手柄到第三行末尾的 `single pass.` | 选区覆盖整句，**只在左栏内**，不会跑到右栏 |
 | 3 | 松手 | 选区上方弹出深色菜单：四个颜色圆点、「摘录为卡片」「仅高亮」「复制」；菜单不挡住选区 |
 | 4 | 点黄色圆点（提示「定义」），再点「摘录为卡片」 | ① 这句话出现黄色高亮；② 页边栏在**同一高度**出现卡片，标题是这句话的开头几个词，下方「● 定义　p.1」；③ 有一条虚线从高亮连到卡片；④ 卡片飞入右侧脑图，挂在根节点下，新节点闪一下；⑤ 脑图标题变为「1 张卡片」 |
-| 5 | 点这张页边卡片 | 右侧滑出卡片详情；原文框里是**连续的一句话**：`System One models choose an agent’s next action by scoring a supplied set of options in a single pass.` ——没有换行，`action` 是完整的一个词（不是 `ac-tion` / `ac tion`），也没有乱码字符 |
+| 5 | 点这张页边卡片 | 右侧滑出卡片详情；原文框里是**连续的一句话**，以 `System One models choose an agent’s next action by scoring a supplied set of options in a single pass` 开头——没有换行，`action` 是完整的一个词（不是 `ac-tion` / `ac tion`），也没有乱码字符。**句末标点是否包含不检查**（取决于选区是否覆盖到标点，见 docs/known-issues.md） |
 
 ## TC-EXC-02 改卡片标题　P1
 | # | 操作 | 期望 |

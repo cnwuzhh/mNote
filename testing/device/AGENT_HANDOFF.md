@@ -18,6 +18,7 @@
       assets/               测试素材（论文 PDF）
       reference/            参考截图
       RESULTS_TEMPLATE.md   结果报告模板
+      KNOWN_ISSUES.md       已知问题和不修复项（遇到不必报告）
     results/                **测试结果放这里**（见下）
 ```
 

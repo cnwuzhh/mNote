@@ -100,6 +100,7 @@ cp -r testing/device/. "$OUT/testcases/"
 mkdir -p "$OUT/testcases/assets" "$OUT/testcases/reference"
 cp test/samples/usecases/*.pdf "$OUT/testcases/assets/" 2>/dev/null || true
 cp test/mnote/screenshots/*.png "$OUT/testcases/reference/" 2>/dev/null || true
+cp docs/known-issues.md "$OUT/testcases/KNOWN_ISSUES.md" 2>/dev/null || true
 
 # ---- release notes ----
 COMMITS=$( { if [[ -n "$PREV_SHA" ]] && git cat-file -e "$PREV_SHA" 2>/dev/null; then

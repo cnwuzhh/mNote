@@ -7,7 +7,7 @@
 | 1 | `adb install -r <apk>` | 输出 `Success` |
 | 2 | `adb shell dumpsys package io.github.cnwuzhh.mnote \| grep versionName` | 与 `manifest.json` 的 `versionName` 一致 |
 | 3 | 在桌面找到 App | 名字显示为「mNote」 |
-| 4 | `adb shell am start -n io.github.cnwuzhh.mnote/.MainActivity` | 5 秒内显示「学习集」页：大标题「学习集」、按钮「新建学习集」；底部导航第一个标签是「学习集」且被选中 |
+| 4 | `adb shell am start -n io.github.cnwuzhh.mnote/.MainActivity` | 5 秒内显示「学习集」页：大标题「学习集」、按钮「新建学习集」；导航栏（手机在底部，平板横屏在左侧）第一项是「学习集」且被选中 |
 | 5 | 查看日志 | 无 Flutter 异常 |
 
 ## TC-BRAND-01 界面里没有 Saber 字样　`冒烟`　P0
@@ -51,7 +51,6 @@ mNote 还没有自己的隐私政策网页。为避免链到 Saber 的页面，�
 | 2 | 输入框为空 | 登录按钮为灰色不可点 |
 | 3 | 输入 `http://localhost:8380` | 按钮变为可点（这是之前修过的问题：不带点的主机名也要能点） |
 | 4 | 改为 `http://10.239.23.229:8380`、`nc.example.com` | 按钮都可点 |
-| 5 | 改为 `ftp://x` | 按钮灰色 |
 
 ## TC-LOGIN-02 横屏弹出键盘不溢出　P1
 **前置**：横屏。
@@ -59,7 +58,8 @@ mNote 还没有自己的隐私政策网页。为避免链到 Saber 的页面，�
 |---|---|---|
 | 1 | 进入登录页，点服务器地址输入框 | 软键盘弹出；页面可以上下滚动，输入框在键盘上方可见 |
 | 2 | 截图并查看日志 | 界面上**没有**黄黑条纹；日志里**没有** `RenderFlex overflowed` |
-| 3 | 在页面上往下拖 | 键盘收起 |
+| 3 | 在输入框上方的空白处按住，向下拖约 600 px（`adb shell input swipe X 300 X 900 400`，X 取页面中间） | 键盘收起 |
+| 4 | 再点输入框弹出键盘，然后点页面上的空白处（不是输入框、不是按钮） | 键盘收起 |
 
 ## TC-DATA-01 数据文件夹叫 mNote　P2
 **前置**：debug 包。已在「首页」用「+」新建过一个笔记。
