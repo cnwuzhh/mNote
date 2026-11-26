@@ -177,7 +177,8 @@ git -c user.name="${GIT_AUTHOR_NAME:-cnwuzhh}" -c user.email="${GIT_AUTHOR_EMAIL
 mkdir -p "$OUT/results"
 cp testing/device/AGENT_HANDOFF.md "$BUILDS_DIR/README.md"
 ln -sfn "$ID" "$BUILDS_DIR/LATEST"
-cp docs/releases/index.md "$BUILDS_DIR/BUILDS.md"
+# Links in index.md are <id>.md (repo layout); here notes live in <id>/RELEASE_NOTES.md.
+sed -E 's#\]\((mnote-[^)]+)\.md\)#](\1/RELEASE_NOTES.md)#' docs/releases/index.md >"$BUILDS_DIR/BUILDS.md"
 
 echo "== done: $OUT"
 ls -la "$OUT"
