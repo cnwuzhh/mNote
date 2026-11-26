@@ -5,3 +5,4 @@
 | mnote-20261126-0501-db05db50-debug | 2026-11-26 05:01 UTC（北京 13:01） | debug | db05db50 | [首个打包编译：M1 阅读与摘录、去掉 Saber 痕迹](mnote-20261126-0501-db05db50-debug.md) |
 | mnote-20261126-1307-14bfa192-debug | 2026-11-26 13:08 | debug | 14bfa192 | [隐私政策等 Saber 地址改为占位地址](mnote-20261126-1307-14bfa192-debug.md) |
 | mnote-20261126-1346-b34894e9-debug | 2026-11-26 13:47 | debug | b34894e9 | [PDF 手写批注、套索摘录、导出带批注的 PDF](mnote-20261126-1346-b34894e9-debug.md) |
+| mnote-20261126-1415-3ad0d450-debug | 2026-11-26 14:16 | debug | 3ad0d450 | [修复：登录页拖动或点空白处收起键盘](mnote-20261126-1415-3ad0d450-debug.md) |
