@@ -100,7 +100,13 @@ void main() {
 
   testWidgets('link -> download -> document with source', (tester) async {
     final (store, set, dir) = await setUpStore(tester);
-    addTearDown(() => dir.deleteSync(recursive: true));
+    // A deferred save may still be writing into it; never fail the test on
+    // cleaning up a temp folder.
+    addTearDown(() {
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    });
     await enterLink(tester, base.resolve('/paper.pdf').toString());
     await waitFor(tester, () => set.docs.isNotEmpty);
 
@@ -153,7 +159,13 @@ void main() {
     tester,
   ) async {
     final (store, set, dir) = await setUpStore(tester);
-    addTearDown(() => dir.deleteSync(recursive: true));
+    // A deferred save may still be writing into it; never fail the test on
+    // cleaning up a temp folder.
+    addTearDown(() {
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    });
     await enterLink(tester, base.resolve('/page').toString());
     await waitFor(
       tester,
@@ -173,7 +185,13 @@ void main() {
 
   testWidgets('an invalid link is rejected in the dialog', (tester) async {
     final (store, set, dir) = await setUpStore(tester);
-    addTearDown(() => dir.deleteSync(recursive: true));
+    // A deferred save may still be writing into it; never fail the test on
+    // cleaning up a temp folder.
+    addTearDown(() {
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    });
     await enterLink(tester, 'ftp://example.com/a.pdf');
     await tester.pump();
     expect(find.text('只支持 http 或 https 链接'), findsOneWidget);

@@ -32,7 +32,13 @@ void main() {
         pageCount: 33,
       );
     });
-    addTearDown(() => dir.deleteSync(recursive: true));
+    // A deferred save may still be writing into it; never fail the test on
+    // cleaning up a temp folder.
+    addTearDown(() {
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {}
+    });
 
     await tester.pumpWidget(
       MaterialApp(
@@ -177,7 +183,13 @@ void main() {
           pageCount: 33,
         );
       });
-      addTearDown(() => dir.deleteSync(recursive: true));
+      // A deferred save may still be writing into it; never fail the test on
+      // cleaning up a temp folder.
+      addTearDown(() {
+        try {
+          dir.deleteSync(recursive: true);
+        } catch (_) {}
+      });
       // A card in the right column of page 1 ("When such a model picks the wrong action…").
       store.addCard(
         set,
@@ -290,7 +302,13 @@ void main() {
           pageCount: 33,
         );
       });
-      addTearDown(() => dir.deleteSync(recursive: true));
+      // A deferred save may still be writing into it; never fail the test on
+      // cleaning up a temp folder.
+      addTearDown(() {
+        try {
+          dir.deleteSync(recursive: true);
+        } catch (_) {}
+      });
       // A one-word excerpt ("System", as in the device test) plus a few more cards.
       store
         ..addCard(

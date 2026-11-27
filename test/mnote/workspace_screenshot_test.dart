@@ -82,7 +82,13 @@ void main() {
             pageCount: 33,
           );
         });
-        addTearDown(() => dir.deleteSync(recursive: true));
+        // A deferred save may still be writing into it; never fail the test on
+        // cleaning up a temp folder.
+        addTearDown(() {
+          try {
+            dir.deleteSync(recursive: true);
+          } catch (_) {}
+        });
 
         // Cards from UC-01 steps 5 and 8 (positions read from the paper's text layer).
         final pdf = await tester.runAsync(

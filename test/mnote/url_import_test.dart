@@ -265,7 +265,13 @@ void main() {
     test('imported document keeps its source link across a restart', () async {
       final got = await downloadPdf(base.resolve('/paper'), tempDir: tmp);
       final dir = Directory.systemTemp.createTempSync('mnote_dl_store');
-      addTearDown(() => dir.deleteSync(recursive: true));
+      // A deferred save may still be writing into it; never fail the test on
+      // cleaning up a temp folder.
+      addTearDown(() {
+        try {
+          dir.deleteSync(recursive: true);
+        } catch (_) {}
+      });
       final store = await StudyStore.open(dir);
       final set = await store.createSet('S');
       final doc = await store.importPdf(
