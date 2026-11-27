@@ -86,6 +86,11 @@
 | TC-WIN-04 | Windows AI 与引用预览 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
 | TC-WIN-05 | Windows 数据保留与卸载 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
 | TC-LOGIN-03 | Nextcloud 登录页能打开（含 http 服务器） | P0 |  | cases/TC-10-install-brand-login.md | 缺陷修复（登录页不打开） |
+| TC-NC-03 | 学习集上传到 Nextcloud | P0 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
+| TC-NC-04 | 远端目录已存在时不报错（405） | P0 |  | cases/TC-90-sync.md | Nextcloud 同步缺陷修复 |
+| TC-NC-05 | 换设备 / 重装后恢复学习集 | P0 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
+| TC-NC-06 | 删除学习集也从 Nextcloud 删除 | P1 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
+| TC-NC-07 | Saber 笔记列表不出现隐藏目录 | P2 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
 
 TC-WIN-* 在 Windows 电脑上执行，安装包在 `/home/johnson/mnote-builds/windows/LATEST/`（不在平板编译目录里，见 cases/TC-80-windows.md）。TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
 

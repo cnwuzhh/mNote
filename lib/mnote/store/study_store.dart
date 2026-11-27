@@ -35,10 +35,22 @@ class StudyStore extends ChangeNotifier {
     },
   );
 
+  /// Where study sets live: a hidden folder inside the synced data folder,
+  /// so Nextcloud sync (end-to-end encrypted) carries them. Set by the app.
+  static Directory Function()? syncedRoot;
+
+  /// Connects the store to sync. Set by the app; null in tests.
+  static StoreSync? sync;
+
   static Future<StudyStore> _create() async {
-    final base = await getApplicationSupportDirectory();
-    final store = StudyStore._(Directory('${base.path}/mnote'));
+    final legacy = Directory(
+      '${(await getApplicationSupportDirectory()).path}/mnote',
+    );
+    final root = syncedRoot?.call() ?? legacy;
+    if (root.path != legacy.path) await migrateLegacyDir(legacy, root);
+    final store = StudyStore._(root);
     await store.load();
+    store.attachSync(sync);
     // Write pending edits whenever the app leaves the foreground: Android
     // may kill it in the background without further notice.
     // The binding keeps the listener alive for the lifetime of the app.
@@ -49,6 +61,88 @@ class StudyStore extends ChangeNotifier {
       onDetach: store.flush,
     );
     return store;
+  }
+
+  /// Moves study sets from the old, unsynced location ([from]) to [to] once.
+  /// A rename when possible, otherwise copy then delete (other volume).
+  static Future<void> migrateLegacyDir(Directory from, Directory to) async {
+    if (!from.existsSync() || Directory('${to.path}/sets').existsSync()) return;
+    await to.parent.create(recursive: true);
+    try {
+      if (to.existsSync()) await to.delete(recursive: true);
+      await from.rename(to.path);
+      log.info('Moved study sets to ${to.path}');
+      return;
+    } catch (e) {
+      log.info('Rename failed ($e); copying study sets to ${to.path}');
+    }
+    await for (final e in from.list(recursive: true)) {
+      if (e is! File) continue;
+      final rel = e.path.substring(from.path.length);
+      final dest = File('${to.path}$rel');
+      await dest.parent.create(recursive: true);
+      await e.copy(dest.path);
+    }
+    await from.delete(recursive: true);
+    log.info('Copied study sets to ${to.path}');
+  }
+
+  StreamSubscription<(bool, String)>? _incoming;
+
+  /// Uploads every file written under [rootDir]/sets; applies downloaded
+  /// study sets (changed or deleted on another device).
+  void attachSync(StoreSync? s) {
+    _sync = s;
+    if (s == null) return;
+    AtomicFile.onWritten = (f) {
+      if (_inSets(f.path)) s.written(f.path);
+    };
+    _incoming?.cancel();
+    _incoming = s.incoming.listen((e) => onIncoming(deleted: e.$1, path: e.$2));
+  }
+
+  StoreSync? _sync;
+
+  bool _inSets(String path) => path.startsWith('${rootDir.path}/sets/');
+
+  /// A file under [rootDir] was downloaded ([deleted]: removed remotely).
+  @visibleForTesting
+  Future<void> onIncoming({required bool deleted, required String path}) async {
+    final m = RegExp(r'/sets/([^/]+)/set\.json$').firstMatch(path);
+    if (m == null || !_inSets(path)) return;
+    final id = m.group(1)!;
+    if (deleted) {
+      final s = byId(id);
+      if (s != null) {
+        _sets.remove(s);
+        _pendingSaves.remove(id)?.cancel();
+        notifyListeners();
+      }
+      return;
+    }
+    if (_deleted.contains(id)) return;
+    final fresh = await _readSet(File(path));
+    if (fresh == null) return;
+    final cur = byId(id);
+    if (cur == null) {
+      _sets.add(fresh);
+    } else {
+      // Update in place: open pages keep the same object.
+      cur
+        ..name = fresh.name
+        ..aiDisabled = fresh.aiDisabled
+        ..updatedAt = fresh.updatedAt;
+      cur.docs
+        ..clear()
+        ..addAll(fresh.docs);
+      cur.cards
+        ..clear()
+        ..addAll(fresh.cards);
+      cur.aiNotes
+        ..clear()
+        ..addAll(fresh.aiNotes);
+    }
+    notifyListeners();
   }
 
   /// A store rooted at [dir], used by tests.
@@ -124,6 +218,7 @@ class StudyStore extends ChangeNotifier {
     final f = imageFile(set, name);
     await f.parent.create(recursive: true);
     await f.writeAsBytes(pngBytes, flush: true);
+    _sync?.written(f.path);
     return name;
   }
 
@@ -212,7 +307,17 @@ class StudyStore extends ChangeNotifier {
     // Let a save that is already running finish before removing the folder.
     await AtomicFile.idle(_setFile(set.id));
     final dir = _setDir(set.id);
+    final files = dir.existsSync()
+        ? [
+            for (final f in dir.listSync(recursive: true))
+              if (f is File) f.path,
+          ]
+        : <String>[];
     if (dir.existsSync()) await dir.delete(recursive: true);
+    // Delete them on the server too (Saber marks remote deletions).
+    for (final f in files) {
+      _sync?.deleted(f);
+    }
     notifyListeners();
   }
 
@@ -230,6 +335,7 @@ class StudyStore extends ChangeNotifier {
     final dest = File('${_setDir(set.id).path}/docs/$fileName');
     await dest.parent.create(recursive: true);
     await File(sourcePath).copy(dest.path);
+    _sync?.written(dest.path);
     final baseName = sourcePath.split(Platform.pathSeparator).last;
     final doc = StudyDoc(
       id: id,
@@ -383,4 +489,14 @@ class StoreAccessException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// The store's link to sync (Nextcloud): what to upload / delete, and what
+/// arrived. Paths are absolute.
+abstract class StoreSync {
+  void written(String path);
+  void deleted(String path);
+
+  /// Downloads: (deleted?, path).
+  Stream<(bool, String)> get incoming;
 }

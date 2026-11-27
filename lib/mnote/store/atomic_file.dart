@@ -14,6 +14,9 @@ class AtomicFile {
 
   static final _queues = <String, Future<void>>{};
 
+  /// Called after each successful write (used to queue sync uploads).
+  static void Function(File file)? onWritten;
+
   static String _key(File f) => f.absolute.path;
 
   /// Queues writing [bytes] to [file]. The returned future completes when
@@ -39,6 +42,7 @@ class AtomicFile {
     final tmp = File('${f.path}.tmp');
     await tmp.writeAsBytes(bytes, flush: true);
     await tmp.rename(f.path);
+    onWritten?.call(f);
   }
 
   /// Completes when every queued write to [file] has finished.

@@ -42,6 +42,9 @@ class const SaberSyncInterface()
       recursive: true,
     )) {
       if (localFile is! File) continue;
+      // Temporary / damaged copies (atomic writes, downloads in progress,
+      // quarantined ink) are never synced.
+      if (!SaberSyncInterface.isSyncablePath(localFile.path)) continue;
 
       final syncFile = await getSyncFileFromLocalFile(localFile);
 
@@ -334,7 +337,9 @@ class const SaberSyncInterface()
   /// Use [decryptPath] to decrypt a path instead of accessing this directly.
   static final _decryptMap = <String, String>{};
 
-  static Future<Set<WebDavFile>> findRemoteFiles() async {
+  static Future<Set<WebDavFile>> findRemoteFiles({
+    bool afterConcurrentCreate = false,
+  }) async {
     final client = SaberSyncInterface.client;
     if (client == null) return {};
 
@@ -361,9 +366,20 @@ class const SaberSyncInterface()
     } on DynamiteStatusCodeException catch (e, st) {
       if (e.statusCode == HttpStatus.notFound) {
         log.info('findRemoteFiles: Creating app directory', e, st);
-        await client.webdav.mkcol(
-          PathUri.parse(FileManager.appRootDirectoryPrefix),
-        );
+        try {
+          await client.webdav.mkcol(
+            PathUri.parse(FileManager.appRootDirectoryPrefix),
+          );
+        } on DynamiteStatusCodeException catch (e) {
+          // 405: another sync (download and upload start together) created it
+          // in the meantime. It exists now: list it and carry on.
+          if (!isAlreadyExists(e.statusCode)) rethrow;
+          log.info('findRemoteFiles: app directory was created concurrently');
+          // Only once: never loop if the server keeps contradicting itself.
+          return afterConcurrentCreate
+              ? {}
+              : findRemoteFiles(afterConcurrentCreate: true);
+        }
         log.info('findRemoteFiles: Generating config');
         await client
             .getConfig()
@@ -554,6 +570,17 @@ class const SaberSyncInterface()
   /// List of files to ignore on the server.
   /// Prefixed with a slash so we can use [filePath.endsWith]
   static const _ignoredFiles = <String>['/Readme.md'];
+
+  /// MKCOL on an existing collection answers 405 Method Not Allowed.
+  static bool isAlreadyExists(int statusCode) =>
+      statusCode == HttpStatus.methodNotAllowed;
+
+  /// Whether a local file should be synced: not a temporary atomic-write
+  /// file, an unfinished download or a quarantined damaged file.
+  static bool isSyncablePath(String path) =>
+      !(path.endsWith('.tmp') ||
+          path.endsWith('.part') ||
+          path.contains('.corrupt-'));
 }
 
 class SaberSyncFile extends AbstractSyncFile<File, WebDavFile> {

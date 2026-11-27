@@ -597,8 +597,12 @@ class FileManager {
         .map((FileSystemEntity entity) {
           final filePath = entity.path.substring(documentsDirectory.length);
 
-          // directories don't need any further processing
-          if (entity is Directory) return filePath;
+          // directories don't need any further processing, except that
+          // hidden ones (e.g. mNote's study sets in /.mnote) are not notes
+          if (entity is Directory) {
+            final name = filePath.substring(filePath.lastIndexOf('/') + 1);
+            return name.startsWith('.') ? null : filePath;
+          }
 
           // filter out reserved files
           if (Editor.isReservedPath(filePath)) return null;
