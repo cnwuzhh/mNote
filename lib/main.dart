@@ -104,6 +104,13 @@ Future<void> appRunner(List<String> args) async {
     OnyxSdkPenArea.init(),
   ]);
 
+  // mNote on desktop: the reading layout is designed for 1280×800, so keep
+  // the window from getting so small that the toolbars overlap.
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.setMinimumSize(const Size(1024, 700));
+    await windowManager.setTitle('mNote');
+  }
+
   setLocale();
   stows.locale.addListener(setLocale);
   stows.customDataDir.addListener(FileManager.migrateDataDir);

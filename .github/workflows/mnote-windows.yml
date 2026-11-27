@@ -1,0 +1,87 @@
+name: mNote Windows
+
+# Builds the mNote Windows app (installer + portable zip) on GitHub's Windows
+# runners: Flutter Windows apps cannot be built on Linux.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - m6-windows
+      - main
+
+jobs:
+  build-windows:
+    name: Build mNote for Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            .dart_tool/
+            .flutter-plugins-dependencies
+            build/
+            windows/flutter/ephemeral/
+            ~/.dartServer/
+            ~/.dart-tool/
+          key: ${{ runner.OS }}-mnote-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.OS }}-mnote-
+
+      - name: Setup Flutter
+        uses: adil192/setup-flutter-submodule@v3
+        with:
+          flutter-path: submodules/flutter
+
+      - name: Disable Flutter CLI animations
+        shell: bash
+        run: flutter config --no-cli-animations
+
+      - name: Remove Android-only permission plugin
+        run: ./patches/pre/remove_permission_handler.sh
+        shell: bash
+
+      - name: Build Windows
+        shell: bash
+        run: flutter build windows --release
+
+      - name: Names
+        id: names
+        shell: bash
+        run: |
+          version=$(grep -oP "(?<=buildName = ').*(?=')" lib/data/version.dart)
+          sha=${GITHUB_SHA::8}
+          echo "base=mNote-Windows-${version}-${sha}" >> $GITHUB_OUTPUT
+
+      - name: Portable zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "installers/${{ steps.names.outputs.base }}-portable.zip"
+
+      - name: Download Visual C++ Redistributable
+        shell: bash
+        run: curl -L -o installers/vc_redist.x64.exe https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+      - name: Install Inno Setup
+        run: choco install -y innosetup
+
+      - name: Build Windows Installer
+        run: ISCC.exe installers/mnote_inno_script.iss
+
+      - name: Rename installer
+        shell: bash
+        run: mv installers/mNoteInstaller.exe "installers/${{ steps.names.outputs.base }}-installer.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.names.outputs.base }}
+          path: |
+            installers/${{ steps.names.outputs.base }}-installer.exe
+            installers/${{ steps.names.outputs.base }}-portable.zip
+          retention-days: 30
