@@ -224,13 +224,16 @@ void main() {
       // Saved with the set (the write is real disk IO: wait for it).
       final f = File('${dir.path}/sets/${set.id}/set.json');
       Map<dynamic, dynamic> saved = {};
-      for (var i = 0; i < 30; i++) {
+      for (var i = 0; i < 60; i++) {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)),
         );
         saved = jsonDecode(f.readAsStringSync()) as Map;
-        if ((saved['aiNotes'] as List?)?.length == 1) break;
+        // Wait for the final state: one note left, with its translation
+        // (an early save also had one note, before the result arrived).
+        final notes = saved['aiNotes'] as List?;
+        if (notes?.length == 1 && (notes!.single as Map)['result'] != '') break;
       }
       expect((saved['aiNotes'] as List).single['result'], '在十七个快速系统中，结论是一致的。');
 
