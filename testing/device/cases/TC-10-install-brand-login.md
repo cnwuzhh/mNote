@@ -6,7 +6,7 @@
 |---|---|---|
 | 1 | `adb install -r <apk>` | 输出 `Success` |
 | 2 | `adb shell dumpsys package io.github.cnwuzhh.mnote \| grep versionName` | 与 `manifest.json` 的 `versionName` 一致 |
-| 3 | 在桌面找到 App | 名字显示为「mNote」；图标是黄色纸片上手写的「m」 |
+| 3 | 在桌面找到 App | 名字显示为「mNote」；图标是黄色纸片上斜放的花体「m」 |
 | 4 | `adb shell am start -n io.github.cnwuzhh.mnote/.MainActivity` | 5 秒内显示「学习集」页：大标题「学习集」、按钮「新建学习集」；导航栏（手机在底部，平板横屏在左侧）第一项是「学习集」且被选中 |
 | 5 | 查看日志 | 无 Flutter 异常 |
 
@@ -21,7 +21,7 @@
 | 4 | 「设置」，从上往下滚到底，每屏 dump 一次 | 无 Saber；能看到「自定义 mNote 文件夹」「自动检查 mNote 更新」 |
 | 5 | 设置里进入登录 / 账号页 | 无 Saber |
 | 6 | 设置里点版本号打开「关于」对话框 | **只允许**出现一行「mNote（基于 Saber） 版权所有 © 2022-… Adil Hanney」（按 GPL 必须保留原作者署名）；没有「赞助」类按钮 |
-另外：App 图标应为黄色纸片上手写的「m」（不再是 Saber 的「S」）。
+另外：App 图标应为黄色纸片上斜放的花体「m」（不再是 Saber 的「S」）。
 
 ## TC-BRAND-02 不弹崩溃报告授权　`冒烟`　P0
 **前置**：全新安装（清空数据）。

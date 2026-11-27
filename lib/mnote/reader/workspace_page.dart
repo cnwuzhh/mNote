@@ -749,6 +749,10 @@ class _WorkspacePageState extends State<WorkspacePage>
           behavior: SnackBarBehavior.floating,
           margin: _snackMargin,
           content: Text('已删除「${card.title}」及其高亮'),
+          // Flutter keeps snack bars with an action on screen until tapped
+          // unless told otherwise; this one should go away by itself.
+          persist: false,
+          duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: '撤销',
             onPressed: () {
