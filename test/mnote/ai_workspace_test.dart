@@ -221,16 +221,17 @@ void main() {
       expect(set.aiNotes.map((n) => n.id), [note.id]);
       expect(find.byKey(ValueKey('ai-marker-${bad.id}')), findsNothing);
 
-      // Saved with the set.
-      for (var i = 0; i < 10; i++) {
+      // Saved with the set (the write is real disk IO: wait for it).
+      final f = File('${dir.path}/sets/${set.id}/set.json');
+      Map<dynamic, dynamic> saved = {};
+      for (var i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
         );
+        saved = jsonDecode(f.readAsStringSync()) as Map;
+        if ((saved['aiNotes'] as List?)?.length == 1) break;
       }
-      final saved = jsonDecode(
-        File('${dir.path}/sets/${set.id}/set.json').readAsStringSync(),
-      ) as Map;
       expect((saved['aiNotes'] as List).single['result'], '在十七个快速系统中，结论是一致的。');
 
       await tester.pumpWidget(const SizedBox());

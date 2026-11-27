@@ -75,3 +75,5 @@ adb shell input swipe X1 Y1 X2 Y2 600         # 拖动（拖选区手柄、拖�
 
 ## 6. 报告
 复制 `RESULTS_TEMPLATE.md` 填写，和截图、日志放在同一个文件夹里交回。
+
+- **AI 配置含 API Key**：只在 `/home/johnson/mnote-secrets/ai_providers.json`。按 TC-AI-SETUP 推到平板、导入后立刻删除平板上的副本；不要把文件或 Key 复制进 results/、截图或日志，结果里只写 Key 的后 4 位。

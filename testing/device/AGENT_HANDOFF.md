@@ -37,3 +37,5 @@
 - 包名 `io.github.cnwuzhh.mnote`。旧测试包 `com.adilhanney.saber` 是另一个 App，测试前卸掉。
 - 用例写得不清楚或与界面对不上，记在 `RESULTS.md` 的「用例本身的问题」里，不要自行修改用例。
 - 源代码和用例源文件在同一台服务器的 `/home/johnson/mNote`（git 仓库），一般不需要看。
+
+- **AI 配置含 API Key**：只在 `/home/johnson/mnote-secrets/ai_providers.json`。按 TC-AI-SETUP 推到平板、导入后立刻删除平板上的副本；不要把文件或 Key 复制进 results/、截图或日志，结果里只写 Key 的后 4 位。

@@ -104,6 +104,12 @@ class _WorkspacePageState extends State<WorkspacePage>
   double? _scrollAnchor;
   Offset? _tapDown;
 
+  /// Fingers on the page, and until when a fling may still be moving it:
+  /// only the user's own scrolling switches immersive mode on (not jumps
+  /// to a card, a link target or a search hit).
+  var _pointers = 0;
+  var _flingUntil = DateTime(0);
+
   // Link preview.
   Future<int?>? _refsPage;
   Offset? _lastPointer;
@@ -206,6 +212,8 @@ class _WorkspacePageState extends State<WorkspacePage>
     if (!mounted) return;
     if (controller.isReady && reading) {
       final y = controller.value.getTranslation().y;
+      final byUser = _pointers > 0 || DateTime.now().isBefore(_flingUntil);
+      if (!byUser) _scrollAnchor = y;
       final a = _scrollAnchor ??= y;
       final busy =
           panel != null ||
@@ -988,21 +996,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   List<Widget> _linkPopover(MnotePalette p, double viewW, double viewH) {
     final t = linkPreview!;
     final page = controller.pages[t.page - 1];
-    final w = t.kind == LinkKind.figure || t.kind == LinkKind.table
-        ? 520.0
-        : 420.0;
-    final estH = t.kind == LinkKind.figure || t.kind == LinkKind.table
-        ? 360.0
-        : (t.kind == LinkKind.reference ? 190.0 : 220.0);
     final at = _lastPointer ?? Offset(viewW / 2, viewH / 3);
-    final left = (at.dx - w / 2).clamp(
-      12.0,
-      (viewW - w - 12).clamp(12.0, double.infinity),
-    );
-    final below = at.dy + 18 + estH < viewH - 70;
-    final top = below
-        ? at.dy + 18
-        : (at.dy - 18 - estH).clamp(8.0, double.infinity);
     return [
       Positioned.fill(
         child: Listener(
@@ -1017,18 +1011,22 @@ class _WorkspacePageState extends State<WorkspacePage>
           },
         ),
       ),
-      Positioned(
-        left: left,
-        top: top,
-        child: LinkPreviewCard(
-          target: t,
-          page: page,
-          onGo: _followLink,
-          onCopy: () {
-            Clipboard.setData(ClipboardData(text: t.text));
-            _toast('已复制');
-          },
-          onClose: () => setState(() => linkPreview = null),
+      Positioned.fill(
+        child: CustomSingleChildLayout(
+          delegate: AnchoredPopupLayout(
+            anchor: Rect.fromCenter(center: at, width: 2, height: 28),
+            bottomReserve: 76,
+          ),
+          child: LinkPreviewCard(
+            target: t,
+            page: page,
+            onGo: _followLink,
+            onCopy: () {
+              Clipboard.setData(ClipboardData(text: t.text));
+              _toast('已复制');
+            },
+            onClose: () => setState(() => linkPreview = null),
+          ),
         ),
       ),
     ];
@@ -1325,7 +1323,8 @@ class _WorkspacePageState extends State<WorkspacePage>
     final pw = pBR.dx - pTL.dx;
     final inLeftHalf = last.center.dx < pTL.dx + pw * 0.5;
     final x = inLeftHalf ? pTL.dx + pw * 0.5 - 13 : pTL.dx + pw * 0.925 - 13;
-    return Offset(x + indexAmongSame * 30, last.center.dy - 11);
+    // Several markers on one passage stack downwards: the gutter is narrow.
+    return Offset(x, last.center.dy - 11 + indexAmongSame * 25);
   }
 
   List<Widget> _aiMarkers(MnotePalette p) {
@@ -1366,19 +1365,6 @@ class _WorkspacePageState extends State<WorkspacePage>
     final rs = _localRects(note.rects);
     if (rs.isEmpty) return const [];
     final bounds = rs.reduce((a, b) => a.expandToInclude(b));
-    const w = 440.0, estH = 230.0;
-    final left = bounds.left.clamp(
-      12.0,
-      (viewW - w - 12).clamp(12.0, double.infinity),
-    );
-    // Above the passage when there is room, else below it.
-    final above = bounds.top - estH - 10 > 8;
-    final top = above
-        ? bounds.top - estH - 10
-        : (bounds.bottom + 10).clamp(
-            8.0,
-            (viewH - estH - 80).clamp(8.0, double.infinity),
-          );
     return [
       // Tap anywhere else: collapse back into the marker. A raw listener
       // (not a tap recognizer) so it reacts at once and never competes with
@@ -1396,26 +1382,27 @@ class _WorkspacePageState extends State<WorkspacePage>
           },
         ),
       ),
-      Positioned(
-        left: left,
-        top: top,
-        child: AiNotePanel(
-          note: note,
-          run: aiRuns[note.id],
-          targetLanguageLabel: '英译中',
-          onClose: () => setState(() => openNoteId = null),
-          onSaveAsNote: () => _saveNoteToCard(note),
-          onMakeCard: () => _noteToCard(note),
-          onCopy: () {
-            Clipboard.setData(ClipboardData(text: _noteText(note)));
-            _toast('已复制');
-          },
-          onRegenerate: () {
-            note.result = '';
-            _runAi(note);
-          },
-          onDelete: () => _deleteNote(note),
-          onOpenSettings: _openAiSettings,
+      Positioned.fill(
+        child: CustomSingleChildLayout(
+          delegate: AnchoredPopupLayout(anchor: bounds, bottomReserve: 76),
+          child: AiNotePanel(
+            note: note,
+            run: aiRuns[note.id],
+            targetLanguageLabel: '英译中',
+            onClose: () => setState(() => openNoteId = null),
+            onSaveAsNote: () => _saveNoteToCard(note),
+            onMakeCard: () => _noteToCard(note),
+            onCopy: () {
+              Clipboard.setData(ClipboardData(text: _noteText(note)));
+              _toast('已复制');
+            },
+            onRegenerate: () {
+              note.result = '';
+              _runAi(note);
+            },
+            onDelete: () => _deleteNote(note),
+            onOpenSettings: _openAiSettings,
+          ),
         ),
       ),
     ];
@@ -1825,9 +1812,24 @@ class _WorkspacePageState extends State<WorkspacePage>
                   onPointerDown: (e) {
                     _lastPointer = e.localPosition;
                     _tapDown = e.position;
+                    _pointers++;
+                  },
+                  onPointerCancel: (_) {
+                    _pointers = (_pointers - 1).clamp(0, 10);
+                    _flingUntil = DateTime.now().add(
+                      const Duration(milliseconds: 900),
+                    );
                   },
                   onPointerUp: (e) {
+                    _pointers = (_pointers - 1).clamp(0, 10);
                     final d = _tapDown;
+                    // A drag may continue as a fling; a tap (e.g. on a button
+                    // that jumps somewhere) does not count as scrolling.
+                    if (d != null && (e.position - d).distance >= 12) {
+                      _flingUntil = DateTime.now().add(
+                        const Duration(milliseconds: 900),
+                      );
+                    }
                     _tapDown = null;
                     if (immersive &&
                         d != null &&
@@ -2236,4 +2238,45 @@ class _BoxPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BoxPainter old) =>
       old.a != a || old.b != b || old.color != color;
+}
+
+/// Places a popup (AI result, link preview) next to [anchor] using its real
+/// size: above when it fits, else below, never covering the anchor when
+/// there is room; kept inside the view and clear of the bottom toolbar.
+class AnchoredPopupLayout extends SingleChildLayoutDelegate {
+  new({required this.anchor, this.gap = 10, this.bottomReserve = 0});
+
+  final Rect anchor;
+  final double gap, bottomReserve;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final x = (anchor.center.dx - childSize.width / 2).clamp(
+      12.0,
+      (size.width - childSize.width - 12).clamp(12.0, double.infinity),
+    );
+    final aboveY = anchor.top - gap - childSize.height;
+    final belowY = anchor.bottom + gap;
+    final maxY = size.height - bottomReserve - childSize.height;
+    final double y;
+    if (aboveY >= 8) {
+      y = aboveY;
+    } else if (belowY <= maxY) {
+      y = belowY;
+    } else {
+      // Neither fits fully: use the side with more room.
+      y = anchor.top > size.height - anchor.bottom
+          ? 8
+          : maxY.clamp(8.0, double.infinity);
+    }
+    return Offset(x, y);
+  }
+
+  @override
+  bool shouldRelayout(AnchoredPopupLayout old) =>
+      old.anchor != anchor || old.bottomReserve != bottomReserve;
 }

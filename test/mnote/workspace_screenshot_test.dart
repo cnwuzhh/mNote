@@ -39,6 +39,11 @@ void main() {
     'map',
     'organize',
     'recall',
+    'ai',
+    'cite',
+    'paper',
+    'immersive',
+    'shift',
   ]) {
     final night = variant == 'night';
     testWidgets(
@@ -133,6 +138,39 @@ void main() {
           ..addCard(set, a)
           ..addCard(set, b)
           ..addCard(set, c);
+        if (variant == 'ai') {
+          // Real DeepSeek Flash outputs for this sentence (2026-11-27 test).
+          final rs = await rectsOf(
+            1,
+            'Across seventeen fast',
+            'take this form.',
+          );
+          const src =
+              'Across seventeen fast systems and a reasoning model, the answer is consistent: most wrong actions follow correct reading, and the more accurate a system, the more of its errors take this form.';
+          set.aiNotes
+            ..add(
+              AiNote(
+                id: 'tr',
+                docId: doc.id,
+                kind: AiNote.translate,
+                rects: rs,
+                source: src,
+                providerName: '腾讯 TokenHub · DeepSeek Flash',
+                result: '在十七个快速系统和一个推理模型中，结论是一致的：大多数错误动作都发生在正确读取之后，而且系统越准确，其错误中属于这种形式的比例就越高。',
+              ),
+            )
+            ..add(
+              AiNote(
+                id: 'ex',
+                docId: doc.id,
+                kind: AiNote.explain,
+                rects: rs,
+                source: src,
+                providerName: '腾讯 TokenHub · DeepSeek Flash',
+                result: '句子意为：在17个快速系统和1个推理模型上结论一致——多数错误行动发生在"正确读取"之后；系统越准确，其错误中这类"读对却做错"的比例越高。重要性在于：错误未必源于理解失败，高准确系统尤其需关注从正确理解到正确行动的转化环节，评测应区分读取与行动。',
+              ),
+            );
+        }
         // Handwriting on page 1: an underline, a circle and a highlighter pass.
         final ink = InkDocument();
         final p1 = pdf!.pages[0];
@@ -186,7 +224,9 @@ void main() {
         await tester.runAsync(() => ink.save(store.inkFile(set, doc)));
         await tester.runAsync(() => pdf.dispose());
 
-        mnoteReadingTheme.value = night ? ReadingTheme.night : ReadingTheme.day;
+        mnoteReadingTheme.value = night
+            ? ReadingTheme.night
+            : (variant == 'paper' ? ReadingTheme.paper : ReadingTheme.day);
         await tester.pumpWidget(
           MaterialApp(
             debugShowCheckedModeBanner: false,
@@ -225,6 +265,53 @@ void main() {
           await frames();
         }
 
+        if (variant == 'ai') {
+          final ctl = tester
+              .widget<PdfViewer>(find.byType(PdfViewer))
+              .controller!;
+          ctl
+              .goTo(Matrix4.translationValues(0, -330, 0)..multiply(ctl.value))
+              .ignore();
+          await frames(8);
+          await tester.tap(find.byKey(const ValueKey('ai-marker-tr')));
+          await frames(4);
+        }
+        if (variant == 'cite') {
+          final ctl = tester
+              .widget<PdfViewer>(find.byType(PdfViewer))
+              .controller!;
+          final links = await tester.runAsync(
+            () => ctl.pages[0].loadLinks(enableAutoLinkDetection: false),
+          );
+          final l = links!
+              .where(
+                (l) =>
+                    l.dest?.pageNumber == 24 &&
+                    l.dest!.params![1]!.round() == 720,
+              )
+              .reduce((x, y) => x.rects.first.top > y.rects.first.top ? x : y);
+          final r = ctl.calcRectForRectInsidePage(
+            pageNumber: 1,
+            rect: l.rects.first,
+          );
+          await tester.tapAt(
+            tester.getTopLeft(find.byType(PdfViewer)) +
+                ctl.documentToLocal(r.center),
+          );
+          await frames(10);
+        }
+        if (variant == 'immersive') {
+          await tester.timedDragFrom(
+            const Offset(640, 620),
+            const Offset(0, -160),
+            const Duration(milliseconds: 400),
+          );
+          await frames(10);
+        }
+        if (variant == 'shift') {
+          await tester.tap(find.byKey(const ValueKey('rail-cards')));
+          await frames(10);
+        }
         if (variant == 'cards' || variant == 'map') {
           await tester.tap(
             find.byKey(

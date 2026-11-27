@@ -71,10 +71,19 @@
 | TC-URL-07 | 导入后可改标题，重启后保留 | P1 |  | cases/TC-60-url-import.md | 网络链接导入、重命名 |
 | TC-URL-08 | 导入后离线可读 | P1 |  | cases/TC-60-url-import.md | 网络链接导入 |
 | TC-URL-09 | 剪贴板里的链接自动填入 | P2 |  | cases/TC-60-url-import.md | 网络链接导入 |
+| TC-LINK-01 | 参考文献预览 | P0 | ✓ | cases/TC-70-reading.md | UC-03 A |
+| TC-LINK-02 | 图表、章节、外部链接 | P1 |  | cases/TC-70-reading.md | UC-03 A |
+| TC-AI-01 | 划词翻译（标记方式） | P0 | ✓ | cases/TC-70-reading.md | UC-03 B（需 TC-AI-SETUP、联网） |
+| TC-AI-02 | 解释、同一句两个标记、隐藏与删除 | P1 |  | cases/TC-70-reading.md | UC-03 B |
+| TC-AI-03 | 设置：只显示标记、关闭 AI、失败 | P1 |  | cases/TC-70-reading.md | UC-03 B |
+| TC-READ-02 | 沉浸阅读 | P1 |  | cases/TC-70-reading.md | UC-03 C |
+| TC-UI-04 | 三档主题 | P1 |  | cases/TC-70-reading.md | UC-03 C |
+| TC-MAP-15 | 卡片浮层平移 | P1 |  | cases/TC-70-reading.md | UC-03 D |
+| TC-MAP-16 | 整理模式原文侧滑页 | P1 |  | cases/TC-70-reading.md | UC-03 E |
 
-TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。
+TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
 
-冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-URL-01 → TC-PERSIST-01。
+冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-URL-01 → TC-LINK-01 → TC-AI-01 → TC-PERSIST-01。
 
 ## 维护规则
 - 用例 ID 一经发布不改、不复用；功能删除时把用例标为「已废弃」并保留。

@@ -110,6 +110,17 @@ void main() {
       isFalse,
     );
 
+    // A jump made by the app (to a card, link target, search hit) is not
+    // the user scrolling: the bars stay.
+    controller.goToPage(pageNumber: 5).ignore();
+    await frames(10);
+    expect(controller.pageNumber, 5);
+    expect(
+      find.byKey(const ValueKey('btn-outline')),
+      findsOneWidget,
+      reason: 'no immersive on programmatic jumps',
+    );
+
     // Theme menu: three choices; 护眼纸色 tints the surfaces.
     await tester.tap(find.byKey(const ValueKey('btn-theme')));
     await tester.pump();
