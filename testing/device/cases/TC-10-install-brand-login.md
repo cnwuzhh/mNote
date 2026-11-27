@@ -66,3 +66,15 @@ mNote 还没有自己的隐私政策网页。为避免链到 Saber 的页面，�
 | # | 操作 | 期望 |
 |---|---|---|
 | 1 | `adb shell run-as io.github.cnwuzhh.mnote ls app_flutter` | 有 `mNote` 目录，没有 `Saber` 目录 |
+
+## TC-LOGIN-03 Nextcloud 登录页能打开（含 http 服务器）　P0
+前置：一台能从平板访问的 Nextcloud。用电脑上的 Nextcloud 时先转发端口：`adb reverse tcp:8380 tcp:8380`（端口按实际修改），服务器地址填 `http://localhost:8380`。
+| # | 操作 | 期望 |
+|---|---|---|
+| 1 | 「设置 → 登录」输入服务器地址，点「使用 Nextcloud 登录」 | 出现「请授权 mNote 访问您的 Nextcloud 帐户」，**同时打开 Nextcloud 登录页**（App 内浏览器页，或系统浏览器） |
+| 2 | 如果没有打开：点「登录页面没有打开？点击这里」 | 用系统浏览器打开登录页 |
+| 3 | 仍然打不开 | 对话框显示红字「无法打开登录页面。可以复制链接，在任意浏览器里打开。」；「复制登录链接」可把链接复制出来，粘贴到浏览器能打开 |
+| 4 | 在登录页完成授权 | 对话框自动关闭，App 显示已登录（用户名、头像） |
+| 5 | 填一个不是 Nextcloud 的地址（如 `http://localhost:9`，或某个普通网站） | 对话框显示红字「无法开始 Nextcloud 登录：…」和原因，**不会**一直空等 |
+| 6 | 记录：第 1 步打开的是 App 内浏览器页还是系统浏览器；`adb logcat -d | grep -E "SaberLoginFlow|flutter_web_auth_2"` 的相关行 | — |
+

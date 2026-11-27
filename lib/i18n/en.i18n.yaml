@@ -208,6 +208,10 @@ login:
       pleaseAuthorize: Please authorize mNote to access your Nextcloud account
       followPrompts: Please follow the prompts in the Nextcloud interface
       browserDidntOpen: Login page didn't open? Click here
+      couldNotOpen: Couldn't open the login page. Copy the link and open it in any browser.
+      serverFailed: "Couldn't start the Nextcloud login: $error"
+      copyLink: Copy login link
+      linkCopied: Login link copied
   encLoginStep:
     enterEncPassword: "To protect your data, please enter your encryption password:"
     newToSaber: New to mNote? Just enter a new encryption password.

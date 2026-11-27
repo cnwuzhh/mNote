@@ -921,6 +921,10 @@ class Translations$login$ncLoginStep$loginFlow$zh_Hant_TW extends Translations$l
 	@override String get pleaseAuthorize => '請授權 mNote 存取您的 Nextcloud 帳號';
 	@override String get followPrompts => '請依照 Nextcloud 介面的提示進行操作';
 	@override String get browserDidntOpen => '登入頁面打不開？點擊這裡';
+	@override String get couldNotOpen => '無法開啟登入頁面。可以複製連結，在任何瀏覽器中開啟。';
+	@override String serverFailed({required Object error}) => '無法開始 Nextcloud 登入：${error}';
+	@override String get copyLink => '複製登入連結';
+	@override String get linkCopied => '已複製登入連結';
 }
 
 // Path: login.encLoginStep.encFaq.0

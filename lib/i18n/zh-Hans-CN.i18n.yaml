@@ -208,6 +208,10 @@ login:
       pleaseAuthorize: 请授权 mNote 访问您的 Nextcloud 帐户
       followPrompts: 请按照 Nextcloud 界面中的提示操作
       browserDidntOpen: 登录页面没有打开？点击这里
+      couldNotOpen: 无法打开登录页面。可以复制链接，在任意浏览器里打开。
+      serverFailed: "无法开始 Nextcloud 登录：$error"
+      copyLink: 复制登录链接
+      linkCopied: 已复制登录链接
   encLoginStep:
     enterEncPassword: 为了保护您的数据，请输入您的加密密码：
     newToSaber: mNote 新手？只需输入新的加密密码即可。

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -26,26 +28,63 @@ class SaberLoginFlow {
 
   LoginFlowV2? init;
 
-  Future<void> openLoginUrl() async {
+  /// Why the login page could not be opened or the flow failed, for the
+  /// dialog to show (null while all is well).
+  final problem = ValueNotifier<String?>(null);
+
+  /// Tests: force the in-app tab path (true) or the system browser (false).
+  @visibleForTesting
+  static bool? debugUseInAppTab;
+
+  /// Opens the Nextcloud login page.
+  ///
+  /// On mobile an in-app browser tab is tried first (it returns to the app
+  /// when done). If it cannot be opened — no browser supporting it, an
+  /// `http://` server, a browser that refuses — the system browser is used
+  /// instead; either way the login completes by polling. With [external]
+  /// the system browser is used directly (the dialog's retry button).
+  Future<void> openLoginUrl({bool external = false}) async {
     final init = this.init;
     if (init == null) return;
+    problem.value = null;
 
-    if (Platform.isMacOS || Platform.isIOS || Platform.isAndroid) {
-      // Use FlutterWebAuth2 which returns to Saber when authenticated
-      log.info('Opening login link in-app: ${init.login}');
-      await FlutterWebAuth2.authenticate(
-        url: init.login,
-        callbackUrlScheme: 'nc',
-        options: const FlutterWebAuth2Options(
-          // We removed the flutter_web_auth_2_desktop_webview package
-          useWebview: false,
-        ),
+    final inAppTab =
+        !external &&
+        (debugUseInAppTab ??
+            (Platform.isMacOS || Platform.isIOS || Platform.isAndroid));
+    if (inAppTab) {
+      try {
+        log.info('Opening login link in-app: ${init.login}');
+        await FlutterWebAuth2.authenticate(
+          url: init.login,
+          callbackUrlScheme: 'nc',
+          options: const FlutterWebAuth2Options(
+            // We removed the flutter_web_auth_2_desktop_webview package
+            useWebview: false,
+          ),
+        );
+        return;
+      } on PlatformException catch (e) {
+        // The user closed the tab: nothing to fix.
+        if (e.code == 'CANCELED') return;
+        log.warning(
+          'In-app login tab failed (${e.code}: ${e.message}); using the system browser',
+        );
+      } catch (e) {
+        log.warning('In-app login tab failed ($e); using the system browser');
+      }
+    }
+
+    try {
+      log.info('Opening login link in the system browser: ${init.login}');
+      final ok = await launchUrl(
+        Uri.parse(init.login),
+        mode: LaunchMode.externalApplication,
       );
-    } else {
-      // Use url_launcher to open the link in the default browser
-      log.info('Opening login link in browser: ${init.login}');
-      final loginLink = Uri.parse(init.login);
-      await launchUrl(loginLink);
+      if (!ok) problem.value = 'noBrowser';
+    } catch (e) {
+      log.warning('Could not open the system browser: $e');
+      problem.value = 'noBrowser';
     }
   }
 
@@ -59,7 +98,7 @@ class SaberLoginFlow {
       init = await flowClient.init().then((response) => response.body);
       log.info('init: $init');
 
-      openLoginUrl();
+      unawaited(openLoginUrl());
 
       _pollTimer?.cancel();
       _pollTimer = Timer.periodic(
@@ -84,6 +123,14 @@ class SaberLoginFlow {
       return await fn();
     } on http.ClientException catch (error, stackTrace) {
       log.severe('Error while polling the login flow.', error, stackTrace);
+      problem.value = 'server:$error';
+      if (!completer.isCompleted) completer.completeError(error, stackTrace);
+      return null;
+    } catch (error, stackTrace) {
+      // Not a Nextcloud server, wrong path, certificate problems, …: report
+      // it instead of leaving the dialog waiting forever.
+      log.severe('Login flow failed.', error, stackTrace);
+      problem.value = 'server:$error';
       if (!completer.isCompleted) completer.completeError(error, stackTrace);
       return null;
     }

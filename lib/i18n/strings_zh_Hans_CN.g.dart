@@ -921,6 +921,10 @@ class Translations$login$ncLoginStep$loginFlow$zh_Hans_CN extends Translations$l
 	@override String get pleaseAuthorize => '请授权 mNote 访问您的 Nextcloud 帐户';
 	@override String get followPrompts => '请按照 Nextcloud 界面中的提示操作';
 	@override String get browserDidntOpen => '登录页面没有打开？点击这里';
+	@override String get couldNotOpen => '无法打开登录页面。可以复制链接，在任意浏览器里打开。';
+	@override String serverFailed({required Object error}) => '无法开始 Nextcloud 登录：${error}';
+	@override String get copyLink => '复制登录链接';
+	@override String get linkCopied => '已复制登录链接';
 }
 
 // Path: login.encLoginStep.encFaq.0

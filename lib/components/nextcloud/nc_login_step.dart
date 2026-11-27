@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
@@ -314,23 +315,51 @@ class const _LoginFlowDialog({required final SaberLoginFlow loginFlow})
   @override
   Widget build(BuildContext context) {
     useMemoized(
-      () => loginFlow.future.then((_) {
-        if (!context.mounted) return;
-        Navigator.of(context).pop();
-      }),
+      () => loginFlow.future.then(
+        (_) {
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+        },
+        // Failures are shown through loginFlow.problem.
+        onError: (_) {},
+      ),
       [loginFlow],
     );
+    final problem = useValueListenable(loginFlow.problem);
+    final strings = t.login.ncLoginStep.loginFlow;
 
     return AlertDialog.adaptive(
       title: Text(t.login.ncLoginStep.loginFlow.pleaseAuthorize),
       content: Column(
         mainAxisSize: .min,
         children: [
-          Text(t.login.ncLoginStep.loginFlow.followPrompts),
+          Text(strings.followPrompts),
+          if (problem != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              problem.startsWith('server:')
+                  ? strings.serverFailed(error: problem.substring(7))
+                  : strings.couldNotOpen,
+              key: const ValueKey('nc-login-problem'),
+              style: TextStyle(color: ColorScheme.of(context).error),
+            ),
+          ],
           TextButton(
-            onPressed: loginFlow.openLoginUrl,
-            child: Text(t.login.ncLoginStep.loginFlow.browserDidntOpen),
+            key: const ValueKey('nc-login-retry'),
+            // The retry uses the system browser directly.
+            onPressed: () => loginFlow.openLoginUrl(external: true),
+            child: Text(strings.browserDidntOpen),
           ),
+          if (loginFlow.init != null)
+            TextButton(
+              key: const ValueKey('nc-login-copy'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: loginFlow.init!.login));
+                ScaffoldMessenger.maybeOf(context)
+                    ?.showSnackBar(SnackBar(content: Text(strings.linkCopied)));
+              },
+              child: Text(strings.copyLink),
+            ),
         ],
       ),
       actions: [

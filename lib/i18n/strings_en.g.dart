@@ -1503,6 +1503,18 @@ class Translations$login$ncLoginStep$loginFlow$en {
 
 	/// en: 'Login page didn't open? Click here'
 	String get browserDidntOpen => 'Login page didn\'t open? Click here';
+
+	/// en: 'Couldn't open the login page. Copy the link and open it in any browser.'
+	String get couldNotOpen => 'Couldn\'t open the login page. Copy the link and open it in any browser.';
+
+	/// en: 'Couldn't start the Nextcloud login: $error'
+	String serverFailed({required Object error}) => 'Couldn\'t start the Nextcloud login: ${error}';
+
+	/// en: 'Copy login link'
+	String get copyLink => 'Copy login link';
+
+	/// en: 'Login link copied'
+	String get linkCopied => 'Login link copied';
 }
 
 // Path: login.encLoginStep.encFaq.0

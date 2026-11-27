@@ -85,6 +85,7 @@
 | TC-WIN-03 | Windows 学习集、导入、摘录（鼠标） | P0 |  | cases/TC-80-windows.md | Windows 版第一档 |
 | TC-WIN-04 | Windows AI 与引用预览 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
 | TC-WIN-05 | Windows 数据保留与卸载 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
+| TC-LOGIN-03 | Nextcloud 登录页能打开（含 http 服务器） | P0 |  | cases/TC-10-install-brand-login.md | 缺陷修复（登录页不打开） |
 
 TC-WIN-* 在 Windows 电脑上执行，安装包在 `/home/johnson/mnote-builds/windows/LATEST/`（不在平板编译目录里，见 cases/TC-80-windows.md）。TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
 
