@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Design tokens of the "页边" design (design-demos/final.html).
@@ -5,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 class MnotePalette extends ThemeExtension<MnotePalette> {
   const new({
     required this.dark,
+    this.paperTint = false,
     required this.board,
     required this.paper,
     required this.paper2,
@@ -18,6 +20,9 @@ class MnotePalette extends ThemeExtension<MnotePalette> {
   });
 
   final bool dark;
+
+  /// 护眼纸色: warm paper surfaces and PDF pages tinted to paper.
+  final bool paperTint;
 
   /// Window background behind pages.
   final Color board;
@@ -47,6 +52,23 @@ class MnotePalette extends ThemeExtension<MnotePalette> {
     line: Color(0xFFE3DBCB),
     accent: Color(0xFFB4532A),
     gap: Color(0xFFEAE3D4),
+  );
+
+  /// 护眼纸色: warm, slightly lower-contrast paper; text stays dark enough
+  /// for ≥4.5:1 on every surface.
+  static const paperTheme = MnotePalette(
+    dark: false,
+    paperTint: true,
+    board: Color(0xFFE6DABF),
+    paper: Color(0xFFF2E6C9),
+    paper2: Color(0xFFF5EBD2),
+    card: Color(0xFFFAF1DB),
+    ink: Color(0xFF3A3024),
+    ink2: Color(0xFF5A4E3C),
+    ink3: Color(0xFF64573F),
+    line: Color(0xFFD9CBA8),
+    accent: Color(0xFFA54A22),
+    gap: Color(0xFFE2D5B6),
   );
 
   static const night = MnotePalette(
@@ -80,8 +102,14 @@ const mnoteSerif = <String>['Noto Serif CJK SC', 'Noto Serif SC', 'serif'];
 
 /// Builds the mNote theme on top of the app theme so Saber screens keep
 /// working while mNote screens get the paper look.
-ThemeData mnoteTheme(ThemeData base, {required bool night}) {
-  final p = night ? MnotePalette.night : MnotePalette.light;
+ThemeData mnoteTheme(
+  ThemeData base, {
+  required bool night,
+  bool paper = false,
+}) {
+  final p = night
+      ? MnotePalette.night
+      : (paper ? MnotePalette.paperTheme : MnotePalette.light);
   final scheme =
       ColorScheme.fromSeed(
         seedColor: p.accent,
@@ -111,10 +139,52 @@ ThemeData mnoteTheme(ThemeData base, {required bool night}) {
   );
 }
 
-/// Global night-mode switch for mNote screens (top-bar moon icon).
-final mnoteNight = ValueNotifier<bool>(false);
+/// The three reading themes (top-bar theme button).
+enum ReadingTheme {
+  day('日间'),
+  paper('护眼纸色'),
+  night('夜读');
 
-/// Wraps [child] in the mNote theme and rebuilds on night-mode changes.
+  new(this.label);
+  final String label;
+}
+
+/// Global reading theme for mNote screens.
+final mnoteReadingTheme = ValueNotifier<ReadingTheme>(ReadingTheme.day);
+
+/// Night mode on/off (kept for callers that only care about night).
+final mnoteNight = _NightSwitch();
+
+class _NightSwitch implements ValueListenable<bool> {
+  @override
+  bool get value => mnoteReadingTheme.value == ReadingTheme.night;
+  set value(bool v) =>
+      mnoteReadingTheme.value = v ? ReadingTheme.night : ReadingTheme.day;
+  @override
+  void addListener(VoidCallback l) => mnoteReadingTheme.addListener(l);
+  @override
+  void removeListener(VoidCallback l) => mnoteReadingTheme.removeListener(l);
+}
+
+/// PDF page tint per theme: night inverts to warm light-on-dark; paper
+/// multiplies pages toward the paper colour (text stays near black).
+ColorFilter? pageFilterFor(MnotePalette p) => p.dark
+    ? const ColorFilter.matrix([
+        -0.86, 0, 0, 0, 236, //
+        0, -0.86, 0, 0, 229,
+        0, 0, -0.86, 0, 216,
+        0, 0, 0, 1, 0,
+      ])
+    : p.paperTint
+    ? const ColorFilter.matrix([
+        0.93, 0, 0, 0, 8, //
+        0, 0.88, 0, 0, 8,
+        0, 0, 0.74, 0, 8,
+        0, 0, 0, 1, 0,
+      ])
+    : null;
+
+/// Wraps [child] in the mNote theme and rebuilds on theme changes.
 class MnoteThemed extends StatelessWidget {
   const new({super.key, required this.child});
 
@@ -122,10 +192,14 @@ class MnoteThemed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: mnoteNight,
-      builder: (context, night, _) => Theme(
-        data: mnoteTheme(Theme.of(context), night: night),
+    return ValueListenableBuilder<ReadingTheme>(
+      valueListenable: mnoteReadingTheme,
+      builder: (context, t, _) => Theme(
+        data: mnoteTheme(
+          Theme.of(context),
+          night: t == ReadingTheme.night,
+          paper: t == ReadingTheme.paper,
+        ),
         child: child,
       ),
     );

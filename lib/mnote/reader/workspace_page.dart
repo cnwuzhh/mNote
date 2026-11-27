@@ -95,6 +95,15 @@ class _WorkspacePageState extends State<WorkspacePage>
   var hideAiMarks = false;
   Offset? _scrimDown;
 
+  /// How far the page is slid left for the cards overlay (0 = not slid).
+  double _shiftedBy = 0;
+
+  // Immersive reading: scrolling down hides the top bar and toolbar; a tap
+  // brings them back.
+  var immersive = false;
+  double? _scrollAnchor;
+  Offset? _tapDown;
+
   // Link preview.
   Future<int?>? _refsPage;
   Offset? _lastPointer;
@@ -194,7 +203,25 @@ class _WorkspacePageState extends State<WorkspacePage>
   }
 
   void _onViewChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (controller.isReady && reading) {
+      final y = controller.value.getTranslation().y;
+      final a = _scrollAnchor ??= y;
+      final busy =
+          panel != null ||
+          openNoteId != null ||
+          linkPreview != null ||
+          searchOpen ||
+          lassoSel != null;
+      if (a - y > 48) {
+        // Content moved up: reading on. Hide the bars.
+        _scrollAnchor = y;
+        if (!immersive && !busy) immersive = true;
+      } else if (y - a > 48) {
+        _scrollAnchor = y;
+      }
+    }
+    setState(() {});
   }
 
   void _repaintPages() {
@@ -709,6 +736,7 @@ class _WorkspacePageState extends State<WorkspacePage>
   });
 
   Future<void> _readAt(MCard card) async {
+    if (panel == 'cards') _slideBack();
     setState(() {
       mode = WorkMode.excerpt;
       sourceCard = null;
@@ -719,7 +747,9 @@ class _WorkspacePageState extends State<WorkspacePage>
   }
 
   void _setMode(WorkMode m) {
+    if (panel == 'cards') _slideBack();
     setState(() {
+      immersive = false;
       mode = m;
       panel = null;
       sourceCard = null;
@@ -824,6 +854,49 @@ class _WorkspacePageState extends State<WorkspacePage>
   /// Hints float above the bottom toolbar instead of covering it.
   EdgeInsets get _snackMargin =>
       const EdgeInsets.fromLTRB(16, 0, _railWidth + 16, 84);
+
+  // ---------------- overlays ----------------
+
+  /// Opens / closes the cards or mind-map overlay. Opening the cards overlay
+  /// slides the page left so the right column (which it would cover) stays
+  /// readable next to it; closing slides it back.
+  void _setPanel(String? v) {
+    final was = panel;
+    setState(() => panel = v);
+    if (v == 'cards' && was != 'cards') _slideForCards();
+    if (was == 'cards' && v != 'cards') _slideBack();
+  }
+
+  Future<void> _slideForCards() async {
+    if (!hasPageLayout(controller)) return;
+    final box = readerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final pageNo = (controller.pageNumber ?? 1).clamp(1, controller.pageCount);
+    final pr = controller.layout.pageLayouts[pageNo - 1];
+    final left = controller.documentToLocal(pr.topLeft).dx;
+    final right = controller.documentToLocal(pr.topRight).dx;
+    // Text of a two-column paper ends about 10% before the page edge.
+    final textRight = left + (right - left) * 0.9;
+    final panelLeft = box.size.width - _cardsPanelWidth;
+    final dx = textRight - panelLeft + 12;
+    if (dx <= 0) return;
+    setState(() => _shiftedBy = dx);
+    await WidgetsBinding.instance.endOfFrame;
+    await controller.goTo(
+      Matrix4.translationValues(-dx, 0, 0)..multiply(controller.value),
+      duration: const Duration(milliseconds: 320),
+    );
+  }
+
+  Future<void> _slideBack() async {
+    final dx = _shiftedBy;
+    if (dx <= 0) return;
+    await controller.goTo(
+      Matrix4.translationValues(dx, 0, 0)..multiply(controller.value),
+      duration: const Duration(milliseconds: 280),
+    );
+    if (mounted) setState(() => _shiftedBy = 0);
+  }
 
   // ---------------- links ----------------
 
@@ -1438,8 +1511,24 @@ class _WorkspacePageState extends State<WorkspacePage>
       body: SafeArea(
         child: Column(
           children: [
-            _topBar(p),
-            Divider(height: 1, color: p.line),
+            ClipRect(
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: immersive && reading
+                    ? const SizedBox(
+                        width: double.infinity,
+                        key: ValueKey('top-bar-hidden'),
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _topBar(p),
+                          Divider(height: 1, color: p.line),
+                        ],
+                      ),
+              ),
+            ),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, cons) =>
@@ -1569,19 +1658,30 @@ class _WorkspacePageState extends State<WorkspacePage>
             ),
             const SizedBox(width: 8),
           ],
-          IconButton(
-            key: const ValueKey('btn-night'),
-            tooltip: p.dark ? '日间' : '夜读',
-            icon: Icon(
-              p.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              color: p.ink2,
-            ),
-            onPressed: () {
-              mnoteNight.value = !mnoteNight.value;
+          PopupMenuButton<ReadingTheme>(
+            key: const ValueKey('btn-theme'),
+            tooltip: '主题：${mnoteReadingTheme.value.label}',
+            initialValue: mnoteReadingTheme.value,
+            onSelected: (t) {
+              mnoteReadingTheme.value = t;
               WidgetsBinding.instance.addPostFrameCallback(
                 (_) => _repaintPages(),
               );
             },
+            itemBuilder: (_) => [
+              for (final t in ReadingTheme.values)
+                CheckedPopupMenuItem(
+                  key: ValueKey('theme-${t.name}'),
+                  value: t,
+                  checked: t == mnoteReadingTheme.value,
+                  child: Text(t.label),
+                ),
+            ],
+            icon: Icon(switch (mnoteReadingTheme.value) {
+              ReadingTheme.day => Icons.light_mode_outlined,
+              ReadingTheme.paper => Icons.menu_book_outlined,
+              ReadingTheme.night => Icons.dark_mode_outlined,
+            }, color: p.ink2),
           ),
         ],
       ),
@@ -1628,13 +1728,10 @@ class _WorkspacePageState extends State<WorkspacePage>
                     controller: controller,
                     params: PdfViewerParams(
                       backgroundColor: p.gap,
-                      pageImageColorFilter: p.dark
-                          ? const ColorFilter.matrix([
-                              -0.86, 0, 0, 0, 236, //
-                              0, -0.86, 0, 0, 229,
-                              0, 0, -0.86, 0, 216,
-                              0, 0, 0, 1, 0,
-                            ])
+                      pageImageColorFilter: pageFilterFor(p),
+                      // Room to slide the page left while the cards overlay is open.
+                      boundaryMargin: _shiftedBy > 0
+                          ? const EdgeInsets.only(right: 480)
                           : null,
                       linkHandlerParams: PdfLinkHandlerParams(
                         onLinkTap: _onLinkTap,
@@ -1719,11 +1816,30 @@ class _WorkspacePageState extends State<WorkspacePage>
               if (reading && openNoteId != null) ..._aiPanel(p, viewW, h),
               if (reading && linkPreview != null) ..._linkPopover(p, viewW, h),
               if (reading && returnTo != null) _returnPill(p),
-              // Remembers where the finger went down (to place link previews).
+              // Remembers where the finger went down (to place link previews);
+              // in immersive mode a tap (no drag) brings the bars back.
               Positioned.fill(
                 child: Listener(
+                  key: const ValueKey('reader-pointer'),
                   behavior: HitTestBehavior.translucent,
-                  onPointerDown: (e) => _lastPointer = e.localPosition,
+                  onPointerDown: (e) {
+                    _lastPointer = e.localPosition;
+                    _tapDown = e.position;
+                  },
+                  onPointerUp: (e) {
+                    final d = _tapDown;
+                    _tapDown = null;
+                    if (immersive &&
+                        d != null &&
+                        (e.position - d).distance < 12) {
+                      setState(() {
+                        immersive = false;
+                        _scrollAnchor = controller.isReady
+                            ? controller.value.getTranslation().y
+                            : null;
+                      });
+                    }
+                  },
                 ),
               ),
             ],
@@ -1742,15 +1858,13 @@ class _WorkspacePageState extends State<WorkspacePage>
               marks: marks,
               barKeys: railKeys,
               panel: panel,
-              onCards: () =>
-                  setState(() => panel = panel == 'cards' ? null : 'cards'),
-              onMap: () =>
-                  setState(() => panel = panel == 'map' ? null : 'map'),
-              onHide: () => setState(() {
-                railHidden = true;
-                panel = null;
-              }),
-              onDragOpen: () => setState(() => panel = 'cards'),
+              onCards: () => _setPanel(panel == 'cards' ? null : 'cards'),
+              onMap: () => _setPanel(panel == 'map' ? null : 'map'),
+              onHide: () {
+                _setPanel(null);
+                setState(() => railHidden = true);
+              },
+              onDragOpen: () => _setPanel('cards'),
             ),
           ),
         if (reading && railHidden)
@@ -1767,16 +1881,28 @@ class _WorkspacePageState extends State<WorkspacePage>
             top: 0,
             bottom: 0,
             right: _railWidth,
-            child: GestureDetector(
-              key: const ValueKey('panel-scrim'),
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => panel = null),
-              child: ColoredBox(
-                color: panel == 'map'
-                    ? Colors.black.withValues(alpha: 0.12)
-                    : Colors.transparent,
-              ),
-            ),
+            // Mind map: dimmed, blocks the page. Cards: the page stays usable
+            // (drag scrolls it); a tap outside closes the overlay.
+            child: panel == 'map'
+                ? GestureDetector(
+                    key: const ValueKey('panel-scrim'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _setPanel(null),
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.12),
+                    ),
+                  )
+                : Listener(
+                    key: const ValueKey('panel-scrim'),
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (e) => _scrimDown = e.position,
+                    onPointerUp: (e) {
+                      final d = _scrimDown;
+                      _scrimDown = null;
+                      if (d != null && (e.position - d).distance < 12)
+                        _setPanel(null);
+                    },
+                  ),
           ),
           Positioned(
             right: _railWidth,
@@ -1788,8 +1914,8 @@ class _WorkspacePageState extends State<WorkspacePage>
               subtitle: panel == 'cards'
                   ? '本文 ${positions.length} 张'
                   : '可拖拽节点，点回退图标回到原文',
-              onPanel: (v) => setState(() => panel = v),
-              onClose: () => setState(() => panel = null),
+              onPanel: _setPanel,
+              onClose: () => _setPanel(null),
               child: panel == 'cards'
                   ? CardsOverlayBody(
                       positions: positions,
@@ -1827,6 +1953,10 @@ class _WorkspacePageState extends State<WorkspacePage>
                 onJump: _showSource,
                 onMove: _moveCard,
                 masked: mode == WorkMode.recall ? masked : null,
+                // Keep the tree clear of the source sheet.
+                rightInset: mode == WorkMode.organize && sourceCard != null
+                    ? (w * 0.36).clamp(360.0, 480.0)
+                    : 0,
                 fill: true,
                 onReveal: (c) => setState(() => masked.remove(c.id)),
               ),
@@ -1857,54 +1987,65 @@ class _WorkspacePageState extends State<WorkspacePage>
           left: 16,
           bottom: 16,
           right: (reading ? _railWidth : 0) + 16,
-          child: Align(
-            alignment: reading ? Alignment.bottomLeft : Alignment.bottomCenter,
-            child: ModeToolbar(
-              ink: ink == null
-                  ? null
-                  : InkControls(
-                      tool: inkTool,
-                      onTool: (t) {
-                        setState(() => inkTool = t);
-                        if (lassoSel != null) _clearLasso();
-                      },
-                      color: inkTool == InkTool.highlighter
-                          ? highlighterColor
-                          : penColor,
-                      onColor: (c) => setState(() {
-                        if (inkTool == InkTool.highlighter) {
-                          highlighterColor = c;
-                        } else {
-                          penColor = c;
-                        }
-                      }),
-                      width: inkWidth,
-                      onWidth: (w) => setState(() => inkWidth = w),
-                      canUndo: ink!.history.canUndo,
-                      canRedo: ink!.history.canRedo,
-                      onUndo: () {
-                        if (ink!.undo()) _inkChanged();
-                      },
-                      onRedo: () {
-                        if (ink!.redo()) _inkChanged();
-                      },
-                      fingerDrawing: store.fingerDrawing,
-                      onFingerDrawing: (v) =>
-                          setState(() => store.fingerDrawing = v),
-                    ),
-              mode: mode,
-              onMode: _setMode,
-              color: color,
-              onColor: (c) => setState(() => color = c),
-              onRevealAll: () => setState(() => masked = {}),
-              onRemask: () => setState(
-                () => masked = set.mapCards.map((c) => c.id).toSet(),
+          child: IgnorePointer(
+            ignoring: immersive && reading,
+            child: AnimatedSlide(
+              key: const ValueKey('toolbar-slide'),
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              offset: immersive && reading ? const Offset(0, 2) : Offset.zero,
+              child: Align(
+                alignment: reading
+                    ? Alignment.bottomLeft
+                    : Alignment.bottomCenter,
+                child: ModeToolbar(
+                  ink: ink == null
+                      ? null
+                      : InkControls(
+                          tool: inkTool,
+                          onTool: (t) {
+                            setState(() => inkTool = t);
+                            if (lassoSel != null) _clearLasso();
+                          },
+                          color: inkTool == InkTool.highlighter
+                              ? highlighterColor
+                              : penColor,
+                          onColor: (c) => setState(() {
+                            if (inkTool == InkTool.highlighter) {
+                              highlighterColor = c;
+                            } else {
+                              penColor = c;
+                            }
+                          }),
+                          width: inkWidth,
+                          onWidth: (w) => setState(() => inkWidth = w),
+                          canUndo: ink!.history.canUndo,
+                          canRedo: ink!.history.canRedo,
+                          onUndo: () {
+                            if (ink!.undo()) _inkChanged();
+                          },
+                          onRedo: () {
+                            if (ink!.redo()) _inkChanged();
+                          },
+                          fingerDrawing: store.fingerDrawing,
+                          onFingerDrawing: (v) =>
+                              setState(() => store.fingerDrawing = v),
+                        ),
+                  mode: mode,
+                  onMode: _setMode,
+                  color: color,
+                  onColor: (c) => setState(() => color = c),
+                  onRevealAll: () => setState(() => masked = {}),
+                  onRemask: () => setState(
+                    () => masked = set.mapCards.map((c) => c.id).toSet(),
+                  ),
+                  tool: tool,
+                  onTool: (t) {
+                    setState(() => tool = t);
+                    if (t == ExcerptTool.box) _toast('在页面上拖出一个矩形来截取区域');
+                  },
+                ),
               ),
-              tool: tool,
-              onTool: (t) {
-                setState(() => tool = t);
-                if (t == ExcerptTool.box) _toast('在页面上拖出一个矩形来截取区域');
-              },
             ),
           ),
         ),

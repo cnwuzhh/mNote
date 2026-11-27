@@ -153,10 +153,17 @@ class _ZoomedParagraphState extends State<_ZoomedParagraph> {
     if (lines.isEmpty) return Rect.fromLTWH(0, 0, pw, math.min(ph, 200));
     final b = lines.reduce((a, c) => a.expandToInclude(c));
     final lineH = lines.map((r) => r.height).reduce(math.max);
+    // At least the whole column (or the full text width when the excerpt
+    // spans both columns), so a one-word excerpt still shows its paragraph
+    // instead of being blown up to a few letters.
+    final spans = b.width > pw * 0.5;
+    final leftCol = b.center.dx < pw / 2;
+    final colLeft = spans ? pw * 0.06 : (leftCol ? pw * 0.07 : pw * 0.495);
+    final colRight = spans ? pw * 0.94 : (leftCol ? pw * 0.505 : pw * 0.93);
     return Rect.fromLTRB(
-      math.max(0, b.left - 12),
+      math.max(0, math.min(b.left - 12, colLeft)),
       math.max(0, b.top - 2.6 * lineH),
-      math.min(pw, b.right + 12),
+      math.min(pw, math.max(b.right + 12, colRight)),
       math.min(ph, b.bottom + 2.6 * lineH),
     );
   }

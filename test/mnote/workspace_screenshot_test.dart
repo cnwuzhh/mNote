@@ -186,7 +186,7 @@ void main() {
         await tester.runAsync(() => ink.save(store.inkFile(set, doc)));
         await tester.runAsync(() => pdf.dispose());
 
-        mnoteNight.value = night;
+        mnoteReadingTheme.value = night ? ReadingTheme.night : ReadingTheme.day;
         await tester.pumpWidget(
           MaterialApp(
             debugShowCheckedModeBanner: false,
@@ -263,7 +263,7 @@ void main() {
           find.byType(WorkspacePage),
           matchesGoldenFile('screenshots/workspace_$variant.png'),
         );
-        mnoteNight.value = false;
+        mnoteReadingTheme.value = ReadingTheme.day;
         await tester.pumpWidget(const SizedBox());
         await tester.pump(const Duration(seconds: 2));
       },

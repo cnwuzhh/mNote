@@ -20,6 +20,7 @@ class MindMapView extends StatelessWidget {
     this.masked,
     this.onReveal,
     this.fill = false,
+    this.rightInset = 0,
     this.selectedId,
   });
 
@@ -42,6 +43,10 @@ class MindMapView extends StatelessWidget {
   /// little so it reads comfortably; in the narrow overlay it only shrinks.
   final bool fill;
 
+  /// Width covered on the right (e.g. the source sheet in organize mode);
+  /// the tree is fitted into the area left of it.
+  final double rightInset;
+
   @override
   Widget build(BuildContext context) {
     final p = MnotePalette.of(context);
@@ -53,6 +58,7 @@ class MindMapView extends StatelessWidget {
     return _FitToWidthViewer(
       signature: signature,
       fill: fill,
+      rightInset: rightInset,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Row(
@@ -382,10 +388,16 @@ class _BranchPainter extends CustomPainter {
 /// available width whenever [signature] changes, so a wide tree stays fully
 /// visible in the side panel. Users can still pinch to zoom and pan.
 class _FitToWidthViewer extends StatefulWidget {
-  const new({required this.signature, required this.child, this.fill = false});
+  const new({
+    required this.signature,
+    required this.child,
+    this.fill = false,
+    this.rightInset = 0,
+  });
 
   final int signature;
   final bool fill;
+  final double rightInset;
   final Widget child;
 
   @override
@@ -398,6 +410,7 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
   int? fittedFor;
   double? fittedWidth;
   double? fittedHeight;
+  double? fittedInset;
 
   @override
   void dispose() {
@@ -405,7 +418,11 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
     super.dispose();
   }
 
-  void _fit(double viewportWidth, double viewportHeight) {
+  void _fit(double fullWidth, double viewportHeight) {
+    final viewportWidth = (fullWidth - widget.rightInset).clamp(
+      200.0,
+      fullWidth,
+    );
     final box = contentKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
     final w = box.size.width, h = box.size.height;
@@ -428,8 +445,9 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
       ..translateByDouble(dx, dy, 0, 1)
       ..scaleByDouble(scale, scale, 1, 1);
     fittedFor = widget.signature;
-    fittedWidth = viewportWidth;
+    fittedWidth = fullWidth;
     fittedHeight = viewportHeight;
+    fittedInset = widget.rightInset;
   }
 
   @override
@@ -438,7 +456,8 @@ class _FitToWidthViewerState extends State<_FitToWidthViewer> {
       builder: (context, cons) {
         if (fittedFor != widget.signature ||
             fittedWidth != cons.maxWidth ||
-            fittedHeight != cons.maxHeight) {
+            fittedHeight != cons.maxHeight ||
+            fittedInset != widget.rightInset) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _fit(cons.maxWidth, cons.maxHeight);
           });
