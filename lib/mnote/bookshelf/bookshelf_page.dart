@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:saber/mnote/ai/ai_settings_page.dart';
 import 'package:saber/mnote/import/url_import.dart';
 
 import 'package:saber/mnote/model/models.dart';
@@ -90,6 +91,17 @@ class _BookshelfPageState extends State<BookshelfPage> {
                   ],
                 ),
                 const Spacer(),
+                OutlinedButton.icon(
+                  key: const ValueKey('btn-ai-settings'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AiSettingsPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: const Text('AI 服务'),
+                ),
+                const SizedBox(width: 12),
                 FilledButton.icon(
                   key: const ValueKey('btn-new-set'),
                   style: FilledButton.styleFrom(backgroundColor: p.accent),
@@ -293,6 +305,30 @@ class StudySetPage extends StatelessWidget {
                         set.name = n.trim();
                         store.touch(set);
                       }
+                    },
+                  ),
+                  IconButton(
+                    key: const ValueKey('btn-set-ai'),
+                    tooltip: set.aiDisabled
+                        ? '本学习集已关闭 AI（点击打开）'
+                        : '本学习集使用 AI（点击关闭）',
+                    icon: Icon(
+                      set.aiDisabled
+                          ? Icons.block
+                          : Icons.auto_awesome_outlined,
+                    ),
+                    onPressed: () {
+                      set.aiDisabled = !set.aiDisabled;
+                      store.touch(set);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            set.aiDisabled
+                                ? '这个学习集不再使用 AI：选中文字时的翻译、解释不会发送任何内容'
+                                : '这个学习集可以使用 AI 翻译和解释',
+                          ),
+                        ),
+                      );
                     },
                   ),
                   IconButton(

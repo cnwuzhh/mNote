@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pdfrx/pdfrx.dart';
-
 import 'package:saber/components/canvas/_stroke.dart';
 import 'package:saber/data/file_manager/file_manager.dart';
+import 'package:saber/mnote/ai/ai_client.dart';
+import 'package:saber/mnote/ai/ai_config.dart';
+import 'package:saber/mnote/ai/ai_prompts.dart';
+import 'package:saber/mnote/ai/ai_settings_page.dart';
 import 'package:saber/mnote/cards/card_detail_panel.dart';
 import 'package:saber/mnote/export/pdf_export.dart';
 import 'package:saber/mnote/ink/ink_document.dart';
@@ -14,8 +18,10 @@ import 'package:saber/mnote/ink/ink_paint.dart';
 import 'package:saber/mnote/mindmap/mindmap_view.dart';
 import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/model/text_clean.dart';
+import 'package:saber/mnote/reader/ai_notes.dart';
 import 'package:saber/mnote/reader/edge_rail.dart';
 import 'package:saber/mnote/reader/excerpt_menu.dart';
+import 'package:saber/mnote/reader/link_preview.dart';
 import 'package:saber/mnote/reader/mode_toolbar.dart';
 import 'package:saber/mnote/reader/pdf_geometry.dart';
 import 'package:saber/mnote/reader/reader_search.dart';
@@ -23,6 +29,7 @@ import 'package:saber/mnote/reader/side_panels.dart';
 import 'package:saber/mnote/reader/source_sheet.dart';
 import 'package:saber/mnote/store/study_store.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const _railWidth = edgeRailWidth;
 const _cardsPanelWidth = 330.0;
@@ -79,6 +86,24 @@ class _WorkspacePageState extends State<WorkspacePage>
   final panelCardKeys = <String, GlobalKey>{};
 
   bool get reading => mode == WorkMode.excerpt || mode == WorkMode.handwrite;
+
+  // AI translate / explain.
+  AiConfig? aiConfig;
+  final aiRuns = <String, AiRunState>{};
+  final _aiCancel = <String, AiCancelToken>{};
+  String? openNoteId;
+  var hideAiMarks = false;
+  Offset? _scrimDown;
+
+  // Link preview.
+  Future<int?>? _refsPage;
+  Offset? _lastPointer;
+  LinkTarget? linkPreview;
+  PdfDest? _linkDest;
+
+  /// Where to go back to after following a link, and that page number.
+  (Matrix4, int)? returnTo;
+  Iterable<AiNote> get docNotes => set.aiNotes.where((n) => n.docId == doc.id);
   var searchOpen = false;
 
   String? selectedId;
@@ -118,6 +143,9 @@ class _WorkspacePageState extends State<WorkspacePage>
     _removeSearchListener = searcher.addListener(_onViewChanged);
     doc.lastOpened = DateTime.now();
     store.touch(set);
+    aiConfigStore.load().then((c) {
+      if (mounted) setState(() => aiConfig = c);
+    });
     InkDocument.loadOrQuarantine(store.inkFile(set, doc)).then((d) {
       if (!mounted) return;
       if (d.recoveredFromDamage) {
@@ -188,6 +216,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     if (initial > 1)
       await c.goToPage(pageNumber: initial, duration: Duration.zero);
     try {
+      _refsPage = findReferencesPage(document);
       final o = await document.loadOutline();
       if (mounted) setState(() => outline = o);
     } catch (_) {}
@@ -227,6 +256,27 @@ class _WorkspacePageState extends State<WorkspacePage>
             RRect.fromRectAndRadius(rect.inflate(1), const Radius.circular(2)),
             paint,
           );
+        }
+      }
+    }
+    if (!hideAiMarks) {
+      final dash = Paint()
+        ..color = MnotePalette.of(context).accent.withValues(alpha: 0.75)
+        ..strokeWidth = 1.2;
+      for (final n in docNotes) {
+        for (final r in n.rects) {
+          if (r.page != page.pageNumber) continue;
+          final rect = r.toPdfRect().toRectInDocument(
+            page: page,
+            pageRect: pageRect,
+          );
+          for (var x = rect.left; x < rect.right; x += 6) {
+            canvas.drawLine(
+              Offset(x, rect.bottom + 1.5),
+              Offset((x + 3).clamp(x, rect.right), rect.bottom + 1.5),
+              dash,
+            );
+          }
         }
       }
     }
@@ -452,6 +502,13 @@ class _WorkspacePageState extends State<WorkspacePage>
       await d.copyTextSelection();
       await d.clearTextSelection();
       _toast('已复制');
+      return;
+    }
+    if (action == ExcerptAction.translate || action == ExcerptAction.explain) {
+      await _aiOnSelection(
+        d,
+        action == ExcerptAction.translate ? AiNote.translate : AiNote.explain,
+      );
       return;
     }
     final ranges = await d.getSelectedTextRanges();
@@ -768,6 +825,529 @@ class _WorkspacePageState extends State<WorkspacePage>
   EdgeInsets get _snackMargin =>
       const EdgeInsets.fromLTRB(16, 0, _railWidth + 16, 84);
 
+  // ---------------- links ----------------
+
+  Future<void> _onLinkTap(PdfLink link) async {
+    final url = link.url;
+    if (url != null) {
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.link),
+                title: Text(url.toString(), key: const ValueKey('link-url')),
+              ),
+              ListTile(
+                key: const ValueKey('link-open-browser'),
+                leading: const Icon(Icons.open_in_browser),
+                title: const Text('在浏览器打开'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  launchUrl(url, mode: LaunchMode.externalApplication);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('复制链接'),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: url.toString()));
+                  Navigator.pop(ctx);
+                  _toast('已复制');
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    if (!controller.isReady) return;
+    final at = _lastPointer;
+    final from = at == null
+        ? controller.pageNumber
+        : controller
+              .getPdfPageHitTestResult(at, useDocumentLayoutCoordinates: false)
+              ?.page
+              .pageNumber;
+    final t = await resolveLink(
+      controller.document,
+      link,
+      fromPage: from,
+      referencesFrom: await (_refsPage ??= findReferencesPage(
+        controller.document,
+      )),
+    );
+    if (!mounted) return;
+    if (t == null) {
+      await controller.goToDest(link.dest);
+      return;
+    }
+    setState(() {
+      linkPreview = t;
+      _linkDest = link.dest;
+      openNoteId = null;
+    });
+  }
+
+  Future<void> _followLink() async {
+    final dest = _linkDest;
+    if (dest == null) return;
+    setState(() {
+      returnTo = (
+        controller.value.clone(),
+        controller.pageNumber ?? doc.lastPage,
+      );
+      linkPreview = null;
+    });
+    await controller.goToDest(dest);
+  }
+
+  Future<void> _goBack() async {
+    final r = returnTo;
+    if (r == null) return;
+    setState(() => returnTo = null);
+    await controller.goTo(r.$1);
+  }
+
+  List<Widget> _linkPopover(MnotePalette p, double viewW, double viewH) {
+    final t = linkPreview!;
+    final page = controller.pages[t.page - 1];
+    final w = t.kind == LinkKind.figure || t.kind == LinkKind.table
+        ? 520.0
+        : 420.0;
+    final estH = t.kind == LinkKind.figure || t.kind == LinkKind.table
+        ? 360.0
+        : (t.kind == LinkKind.reference ? 190.0 : 220.0);
+    final at = _lastPointer ?? Offset(viewW / 2, viewH / 3);
+    final left = (at.dx - w / 2).clamp(
+      12.0,
+      (viewW - w - 12).clamp(12.0, double.infinity),
+    );
+    final below = at.dy + 18 + estH < viewH - 70;
+    final top = below
+        ? at.dy + 18
+        : (at.dy - 18 - estH).clamp(8.0, double.infinity);
+    return [
+      Positioned.fill(
+        child: Listener(
+          key: const ValueKey('link-preview-scrim'),
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (e) => _scrimDown = e.position,
+          onPointerUp: (e) {
+            final d = _scrimDown;
+            _scrimDown = null;
+            if (d != null && (e.position - d).distance < 12)
+              setState(() => linkPreview = null);
+          },
+        ),
+      ),
+      Positioned(
+        left: left,
+        top: top,
+        child: LinkPreviewCard(
+          target: t,
+          page: page,
+          onGo: _followLink,
+          onCopy: () {
+            Clipboard.setData(ClipboardData(text: t.text));
+            _toast('已复制');
+          },
+          onClose: () => setState(() => linkPreview = null),
+        ),
+      ),
+    ];
+  }
+
+  Widget _returnPill(MnotePalette p) => Positioned(
+    left: 16,
+    bottom: 80,
+    child: Material(
+      color: p.ink,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 6,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: const ValueKey('btn-return'),
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(20),
+            ),
+            onTap: _goBack,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 9, 8, 9),
+              child: Row(
+                children: [
+                  Icon(Icons.undo, size: 16, color: p.paper),
+                  const SizedBox(width: 6),
+                  Text(
+                    '返回第 ${returnTo!.$2} 页',
+                    style: TextStyle(fontSize: 14, color: p.paper),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('btn-return-dismiss'),
+            tooltip: '不返回',
+            iconSize: 16,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => returnTo = null),
+            icon: Icon(Icons.close, color: p.paper.withValues(alpha: 0.8)),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  // ---------------- AI translate / explain ----------------
+
+  Future<void> _aiOnSelection(PdfTextSelectionDelegate d, String kind) async {
+    if (set.aiDisabled) {
+      _toast('这个学习集已关闭 AI（在学习集页右上角可以打开）');
+      return;
+    }
+    if (aiConfig == null) {
+      aiConfig = await aiConfigStore.load();
+      if (aiConfig == null) {
+        if (!mounted) return;
+        final go = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('还没有配置 AI 服务'),
+            content: const Text(
+              '翻译和解释需要一个 AI 服务。导入配置文件（ai_providers.json）后即可使用。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('以后再说'),
+              ),
+              FilledButton(
+                key: const ValueKey('ai-go-settings'),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('去设置'),
+              ),
+            ],
+          ),
+        );
+        if (go == true) await _openAiSettings();
+        return;
+      }
+    }
+    final ranges = await d.getSelectedTextRanges();
+    final raw = await d.getSelectedText();
+    final rects = lineRectsForRanges(ranges);
+    if (rects.isEmpty) return;
+    final text = cleanExcerptText(raw);
+    // Context for explanations: the text around the selection on its page.
+    String? pageContext;
+    if (ranges.isNotEmpty) {
+      final full = ranges.first.pageText.fullText;
+      final a = (ranges.first.start - 500).clamp(0, full.length);
+      final b = (ranges.last.end + 500).clamp(0, full.length);
+      pageContext = cleanExcerptText(full.substring(a, b));
+    }
+    await d.clearTextSelection();
+    startAiNote(kind, rects, text, context: pageContext);
+  }
+
+  /// Creates an AI note for a passage and starts generating it. Public so
+  /// widget tests can drive the flow without simulating a text selection.
+  AiNote startAiNote(
+    String kind,
+    List<PageRect> rects,
+    String text, {
+    String? context,
+  }) {
+    final note = AiNote(
+      id: newId(),
+      docId: doc.id,
+      kind: kind,
+      rects: rects,
+      source: text,
+    );
+    set.aiNotes.add(note);
+    store.touch(set);
+    setState(() {
+      if (!(aiConfig?.markerOnly ?? false)) openNoteId = note.id;
+    });
+    _repaintPages();
+    _runAi(note, context: context);
+    return note;
+  }
+
+  Future<void> _runAi(AiNote note, {String? context}) async {
+    final cfg = aiConfig;
+    if (cfg == null) return;
+    _aiCancel[note.id]?.cancel();
+    final cancel = _aiCancel[note.id] = AiCancelToken();
+    final run = aiRuns[note.id] = AiRunState();
+    setState(() {});
+    final msgs = note.kind == AiNote.explain
+        ? explainMessages(
+            note.source,
+            targetLanguage: cfg.targetLanguage,
+            docTitle: doc.title,
+            page: note.page,
+            context: context,
+          )
+        : translateMessages(
+            note.source,
+            targetLanguage: cfg.targetLanguage,
+            docTitle: doc.title,
+            page: note.page,
+          );
+    try {
+      final r = await const AiClient().run(
+        cfg,
+        note.kind == AiNote.explain ? taskExplain : taskTranslate,
+        msgs,
+        cancel: cancel,
+        onDelta: (t, p) {
+          if (!mounted) return;
+          setState(() {
+            run.partial = t;
+            run.provider = p.name;
+          });
+        },
+      );
+      note
+        ..result = r.text
+        ..providerName = r.provider.name;
+      run
+        ..status = AiRunStatus.done
+        ..provider = r.provider.name;
+      store.touch(set);
+    } on AiCancelled {
+      return;
+    } on AiException catch (e) {
+      run
+        ..status = AiRunStatus.error
+        ..error = e.message;
+    }
+    if (mounted) setState(() {});
+  }
+
+  AiRunStatus _statusOf(AiNote n) =>
+      aiRuns[n.id]?.status ??
+      (n.result.isEmpty ? AiRunStatus.error : AiRunStatus.done);
+
+  void _deleteNote(AiNote n) {
+    _aiCancel.remove(n.id)?.cancel();
+    aiRuns.remove(n.id);
+    set.aiNotes.remove(n);
+    store.touch(set);
+    setState(() {
+      if (openNoteId == n.id) openNoteId = null;
+    });
+    _repaintPages();
+  }
+
+  Future<void> _confirmDeleteNote(AiNote n) async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListTile(
+          key: const ValueKey('ai-delete-marker'),
+          leading: const Icon(Icons.delete_outline),
+          title: Text('删除这个「${aiNoteLabel(n)}」标记'),
+          onTap: () => Navigator.pop(ctx, true),
+        ),
+      ),
+    );
+    if (ok == true) _deleteNote(n);
+  }
+
+  /// The card whose source overlaps [n]'s passage, if any.
+  MCard? _cardFor(AiNote n) {
+    for (final c in docCards) {
+      for (final a in c.rects) {
+        for (final b in n.rects) {
+          if (a.page == b.page &&
+              a.left < b.right &&
+              b.left < a.right &&
+              a.bottom < b.top &&
+              b.bottom < a.top)
+            return c;
+        }
+      }
+    }
+    return null;
+  }
+
+  String _noteText(AiNote n) =>
+      n.result.isNotEmpty ? n.result : aiRuns[n.id]?.partial ?? '';
+
+  void _saveNoteToCard(AiNote n) {
+    final c = _cardFor(n);
+    if (c == null) {
+      _toast('这句话还没有卡片：可以点「摘录为卡片」');
+      return;
+    }
+    final label = n.kind == AiNote.explain ? '【AI 解释】' : '【AI 译文】';
+    c.note = c.note.trim().isEmpty
+        ? '$label${_noteText(n)}'
+        : '${c.note.trim()}\n$label${_noteText(n)}';
+    store.touch(set);
+    _toast('已存入卡片「${c.title}」的批注');
+  }
+
+  void _noteToCard(AiNote n) {
+    final label = n.kind == AiNote.explain ? '【AI 解释】' : '【AI 译文】';
+    final card = MCard(
+      id: newId(),
+      docId: doc.id,
+      title: defaultCardTitle(n.source),
+      text: n.source,
+      color: color,
+      rects: List.of(n.rects),
+      note: '$label${_noteText(n)}',
+    );
+    store.addCard(set, card);
+    setState(() => openNoteId = null);
+    _repaintPages();
+    _showAdded(card, null);
+    _flyIn(card);
+  }
+
+  Future<void> _openAiSettings() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const AiSettingsPage()));
+    final c = await aiConfigStore.load();
+    if (mounted) setState(() => aiConfig = c);
+  }
+
+  /// Rects of [rects] in viewer-local coordinates.
+  List<Rect> _localRects(List<PageRect> rects) {
+    if (!hasPageLayout(controller)) return const [];
+    final out = <Rect>[];
+    for (final r in rects) {
+      if (r.page < 1 || r.page > controller.pageCount) continue;
+      final docRect = controller.calcRectForRectInsidePage(
+        pageNumber: r.page,
+        rect: r.toPdfRect(),
+      );
+      final tl = controller.documentToLocal(docRect.topLeft);
+      final br = controller.documentToLocal(docRect.bottomRight);
+      out.add(Rect.fromPoints(tl, br));
+    }
+    return out;
+  }
+
+  /// Markers sit next to the passage's last line: in the gutter for a left
+  /// column, in the right margin otherwise, so they never cover text.
+  Offset? _markerPos(AiNote n, int indexAmongSame) {
+    final rs = _localRects(n.rects);
+    if (rs.isEmpty) return null;
+    final last = rs.last;
+    final r = n.rects.last;
+    final pageRect = controller.layout.pageLayouts[r.page - 1];
+    final pTL = controller.documentToLocal(pageRect.topLeft);
+    final pBR = controller.documentToLocal(pageRect.bottomRight);
+    final pw = pBR.dx - pTL.dx;
+    final inLeftHalf = last.center.dx < pTL.dx + pw * 0.5;
+    final x = inLeftHalf ? pTL.dx + pw * 0.5 - 13 : pTL.dx + pw * 0.925 - 13;
+    return Offset(x + indexAmongSame * 30, last.center.dy - 11);
+  }
+
+  List<Widget> _aiMarkers(MnotePalette p) {
+    final out = <Widget>[];
+    final seen = <String, int>{};
+    for (final n in docNotes) {
+      final key = n.rects.isEmpty
+          ? n.id
+          : '${n.rects.last.page}-${n.rects.last.top.round()}';
+      final i = seen[key] = (seen[key] ?? -1) + 1;
+      final pos = _markerPos(n, i);
+      if (pos == null || pos.dy < -30 || pos.dy > 3000) continue;
+      out.add(
+        Positioned(
+          key: ValueKey('ai-marker-${n.id}'),
+          left: pos.dx,
+          top: pos.dy,
+          child: AiMarker(
+            note: n,
+            status: _statusOf(n),
+            onTap: () =>
+                setState(() => openNoteId = openNoteId == n.id ? null : n.id),
+            onLongPress: () => _confirmDeleteNote(n),
+          ),
+        ),
+      );
+    }
+    return out;
+  }
+
+  List<Widget> _aiPanel(MnotePalette p, double viewW, double viewH) {
+    AiNote? n;
+    for (final x in docNotes) {
+      if (x.id == openNoteId) n = x;
+    }
+    if (n == null) return const [];
+    final note = n;
+    final rs = _localRects(note.rects);
+    if (rs.isEmpty) return const [];
+    final bounds = rs.reduce((a, b) => a.expandToInclude(b));
+    const w = 440.0, estH = 230.0;
+    final left = bounds.left.clamp(
+      12.0,
+      (viewW - w - 12).clamp(12.0, double.infinity),
+    );
+    // Above the passage when there is room, else below it.
+    final above = bounds.top - estH - 10 > 8;
+    final top = above
+        ? bounds.top - estH - 10
+        : (bounds.bottom + 10).clamp(
+            8.0,
+            (viewH - estH - 80).clamp(8.0, double.infinity),
+          );
+    return [
+      // Tap anywhere else: collapse back into the marker. A raw listener
+      // (not a tap recognizer) so it reacts at once and never competes with
+      // the PDF viewer's gestures; a drag (scrolling) keeps the panel open.
+      Positioned.fill(
+        child: Listener(
+          key: const ValueKey('ai-panel-scrim'),
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (e) => _scrimDown = e.position,
+          onPointerUp: (e) {
+            final d = _scrimDown;
+            _scrimDown = null;
+            if (d != null && (e.position - d).distance < 12)
+              setState(() => openNoteId = null);
+          },
+        ),
+      ),
+      Positioned(
+        left: left,
+        top: top,
+        child: AiNotePanel(
+          note: note,
+          run: aiRuns[note.id],
+          targetLanguageLabel: '英译中',
+          onClose: () => setState(() => openNoteId = null),
+          onSaveAsNote: () => _saveNoteToCard(note),
+          onMakeCard: () => _noteToCard(note),
+          onCopy: () {
+            Clipboard.setData(ClipboardData(text: _noteText(note)));
+            _toast('已复制');
+          },
+          onRegenerate: () {
+            note.result = '';
+            _runAi(note);
+          },
+          onDelete: () => _deleteNote(note),
+          onOpenSettings: _openAiSettings,
+        ),
+      ),
+    ];
+  }
+
   void _toast(String msg) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -949,6 +1529,24 @@ class _WorkspacePageState extends State<WorkspacePage>
                 if (!searchOpen) searcher.resetTextSearch();
               }),
             ),
+            if (docNotes.isNotEmpty)
+              IconButton(
+                key: const ValueKey('btn-ai-marks'),
+                tooltip: hideAiMarks ? '显示翻译 / 解释标记' : '隐藏全部标记',
+                icon: Icon(
+                  hideAiMarks
+                      ? Icons.subtitles_off_outlined
+                      : Icons.subtitles_outlined,
+                  color: p.ink2,
+                ),
+                onPressed: () {
+                  setState(() {
+                    hideAiMarks = !hideAiMarks;
+                    if (hideAiMarks) openNoteId = null;
+                  });
+                  _repaintPages();
+                },
+              ),
             IconButton(
               key: const ValueKey('btn-export'),
               tooltip: '导出',
@@ -1038,6 +1636,10 @@ class _WorkspacePageState extends State<WorkspacePage>
                               0, 0, 0, 1, 0,
                             ])
                           : null,
+                      linkHandlerParams: PdfLinkHandlerParams(
+                        onLinkTap: _onLinkTap,
+                        linkColor: Colors.transparent,
+                      ),
                       textSelectionParams: PdfTextSelectionParams(
                         enabled:
                             mode == WorkMode.excerpt && tool != ExcerptTool.box,
@@ -1113,6 +1715,17 @@ class _WorkspacePageState extends State<WorkspacePage>
                   ),
                 ),
               if (added != null && reading) _addedChip(p, viewW),
+              if (reading && !hideAiMarks) ..._aiMarkers(p),
+              if (reading && openNoteId != null) ..._aiPanel(p, viewW, h),
+              if (reading && linkPreview != null) ..._linkPopover(p, viewW, h),
+              if (reading && returnTo != null) _returnPill(p),
+              // Remembers where the finger went down (to place link previews).
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (e) => _lastPointer = e.localPosition,
+                ),
+              ),
             ],
           ),
         ),

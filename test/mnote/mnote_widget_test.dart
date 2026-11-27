@@ -43,7 +43,9 @@ void main() {
     );
     expect(find.text('摘录为卡片'), findsOneWidget);
     expect(find.text('仅高亮'), findsOneWidget);
-    expect(find.text('复制'), findsOneWidget);
+    expect(find.text('翻译'), findsOneWidget);
+    expect(find.text('解释'), findsOneWidget);
+    expect(find.text('复制'), findsNothing, reason: 'moved into 更多');
 
     await tester.tap(find.byKey(const ValueKey('excerpt-color-evidence')));
     await tester.pump();
@@ -53,6 +55,18 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('excerpt-highlight')));
     expect(action, ExcerptAction.highlight);
+
+    await tester.tap(find.byKey(const ValueKey('excerpt-translate')));
+    expect(action, ExcerptAction.translate);
+    await tester.tap(find.byKey(const ValueKey('excerpt-explain')));
+    expect(action, ExcerptAction.explain);
+
+    // 复制 is in 更多.
+    await tester.tap(find.byKey(const ValueKey('excerpt-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('复制'));
+    await tester.pumpAndSettle();
+    expect(action, ExcerptAction.copy);
   });
 
   testWidgets('mind map: long-press drag a card onto another re-parents it', (

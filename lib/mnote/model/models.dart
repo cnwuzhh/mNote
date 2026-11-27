@@ -220,6 +220,64 @@ class StudyDoc {
   );
 }
 
+/// A saved AI translation or explanation of a passage, shown as a small
+/// 「译」/「释」 marker next to the text.
+class AiNote {
+  new({
+    required this.id,
+    required this.docId,
+    required this.kind,
+    required this.rects,
+    required this.source,
+    this.result = '',
+    this.providerName = '',
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  static const translate = 'translate';
+  static const explain = 'explain';
+
+  final String id;
+  final String docId;
+
+  /// [translate] or [explain].
+  final String kind;
+
+  /// The passage's lines (PDF coordinates, like cards).
+  final List<PageRect> rects;
+  final String source;
+  String result;
+  String providerName;
+  final DateTime createdAt;
+
+  int get page => rects.isEmpty ? 1 : rects.map((r) => r.page).reduce(min);
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'docId': docId,
+    'kind': kind,
+    'rects': rects.map((r) => r.toJson()).toList(),
+    'source': source,
+    'result': result,
+    'provider': providerName,
+    'createdAt': createdAt.toIso8601String(),
+  };
+
+  factory fromJson(Map<String, dynamic> j) => AiNote(
+    id: j['id'] as String,
+    docId: j['docId'] as String,
+    kind: j['kind'] == explain ? explain : translate,
+    rects: [
+      for (final r in (j['rects'] as List? ?? const []))
+        PageRect.fromJson((r as Map).cast<String, dynamic>()),
+    ],
+    source: j['source'] as String? ?? '',
+    result: j['result'] as String? ?? '',
+    providerName: j['provider'] as String? ?? '',
+    createdAt: DateTime.tryParse(j['createdAt'] as String? ?? ''),
+  );
+}
+
 /// A study set: a few documents plus one mind map made of their cards.
 class StudySet {
   new({
@@ -227,11 +285,14 @@ class StudySet {
     required this.name,
     List<StudyDoc>? docs,
     List<MCard>? cards,
+    List<AiNote>? aiNotes,
+    this.aiDisabled = false,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.formatVersion = StudySet.currentFormatVersion,
   }) : docs = docs ?? [],
        cards = cards ?? [],
+       aiNotes = aiNotes ?? [],
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -239,6 +300,12 @@ class StudySet {
   String name;
   final List<StudyDoc> docs;
   final List<MCard> cards;
+
+  /// Saved translations / explanations (「译」「释」 markers).
+  final List<AiNote> aiNotes;
+
+  /// 「本学习集不使用 AI」: nothing from this set is sent to an AI service.
+  bool aiDisabled;
   final DateTime createdAt;
   DateTime updatedAt;
 
@@ -289,6 +356,8 @@ class StudySet {
     'name': name,
     'docs': docs.map((d) => d.toJson()).toList(),
     'cards': cards.map((c) => c.toJson()).toList(),
+    if (aiNotes.isNotEmpty) 'aiNotes': aiNotes.map((n) => n.toJson()).toList(),
+    if (aiDisabled) 'aiDisabled': true,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -300,6 +369,8 @@ class StudySet {
     name: j['name'] as String? ?? '',
     docs: _each(j['docs'], StudyDoc.fromJson, 'document'),
     cards: _each(j['cards'], MCard.fromJson, 'card'),
+    aiNotes: _each(j['aiNotes'], AiNote.fromJson, 'AI note'),
+    aiDisabled: j['aiDisabled'] as bool? ?? false,
     createdAt: DateTime.tryParse(j['createdAt'] as String? ?? ''),
     updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? ''),
     formatVersion: _int(j['version'], 1),

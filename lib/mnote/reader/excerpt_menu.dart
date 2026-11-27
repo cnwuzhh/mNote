@@ -4,10 +4,10 @@ import 'package:saber/mnote/model/models.dart';
 import 'package:saber/mnote/theme/mnote_theme.dart';
 
 /// What the user picked in the excerpt menu.
-enum ExcerptAction { card, highlight, copy }
+enum ExcerptAction { card, highlight, copy, translate, explain }
 
 /// The dark rounded menu shown above a text selection:
-/// four colours | 摘录为卡片 | 仅高亮 | 复制.
+/// four colours | 摘录为卡片 仅高亮 | 翻译 解释 | 更多 (复制).
 class ExcerptMenu extends StatefulWidget {
   const new({super.key, required this.initialColor, required this.onAction});
 
@@ -76,11 +76,62 @@ class _ExcerptMenuState extends State<ExcerptMenu> {
               label: '仅高亮',
               onTap: () => widget.onAction(ExcerptAction.highlight, color),
             ),
+            Container(
+              width: 1,
+              height: 26,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              color: Colors.white24,
+            ),
             _MenuButton(
-              key: const ValueKey('excerpt-copy'),
-              icon: Icons.copy_outlined,
-              label: '复制',
-              onTap: () => widget.onAction(ExcerptAction.copy, color),
+              key: const ValueKey('excerpt-translate'),
+              icon: Icons.translate,
+              label: '翻译',
+              onTap: () => widget.onAction(ExcerptAction.translate, color),
+            ),
+            _MenuButton(
+              key: const ValueKey('excerpt-explain'),
+              icon: Icons.lightbulb_outline,
+              label: '解释',
+              onTap: () => widget.onAction(ExcerptAction.explain, color),
+            ),
+            Container(
+              width: 1,
+              height: 26,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              color: Colors.white24,
+            ),
+            PopupMenuButton<ExcerptAction>(
+              key: const ValueKey('excerpt-more'),
+              tooltip: '更多',
+              color: bg,
+              onSelected: (a) => widget.onAction(a, color),
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  key: ValueKey('excerpt-copy'),
+                  value: ExcerptAction.copy,
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_outlined, size: 18, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text('复制', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ],
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.more_horiz, size: 18, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text(
+                      '更多',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
