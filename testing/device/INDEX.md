@@ -80,8 +80,13 @@
 | TC-UI-04 | 三档主题 | P1 |  | cases/TC-70-reading.md | UC-03 C |
 | TC-MAP-15 | 卡片浮层平移 | P1 |  | cases/TC-70-reading.md | UC-03 D |
 | TC-MAP-16 | 整理模式原文侧滑页 | P1 |  | cases/TC-70-reading.md | UC-03 E |
+| TC-WIN-01 | Windows 安装与启动 | P0 |  | cases/TC-80-windows.md | Windows 版第一档 |
+| TC-WIN-02 | Windows 免安装版 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
+| TC-WIN-03 | Windows 学习集、导入、摘录（鼠标） | P0 |  | cases/TC-80-windows.md | Windows 版第一档 |
+| TC-WIN-04 | Windows AI 与引用预览 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
+| TC-WIN-05 | Windows 数据保留与卸载 | P1 |  | cases/TC-80-windows.md | Windows 版第一档 |
 
-TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
+TC-WIN-* 在 Windows 电脑上执行，安装包不在平板编译目录里（见 cases/TC-80-windows.md）。TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
 
 冒烟顺序：TC-INST-01 → TC-BRAND-01 → TC-BRAND-02 → TC-SET-01 → TC-SET-02 → TC-READ-01 → TC-EXC-01 → TC-INK-01 → TC-INK-02 → TC-INK-11 → TC-URL-01 → TC-LINK-01 → TC-AI-01 → TC-PERSIST-01。
 
