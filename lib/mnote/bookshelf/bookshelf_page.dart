@@ -26,6 +26,79 @@ class BookshelfPage extends StatefulWidget {
 
 class _BookshelfPageState extends State<BookshelfPage> {
   StudyStore? store;
+  String? openError;
+
+  void _open() {
+    setState(() => openError = null);
+    StudyStore.instance().then(
+      (s) {
+        if (mounted) setState(() => store = s);
+      },
+      onError: (Object e) {
+        if (mounted) setState(() => openError = '$e');
+      },
+    );
+  }
+
+  Widget _openFailed(MnotePalette p) => ColoredBox(
+    color: p.board,
+    child: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.folder_off_outlined, size: 40, color: p.ink3),
+            const SizedBox(height: 12),
+            Text(
+              openError!,
+              key: const ValueKey('store-open-error'),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: p.ink),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '请确认 mNote 可以写入这个文件夹（权限、磁盘空间、安全软件）。',
+              style: TextStyle(fontSize: 13, color: p.ink3),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              key: const ValueKey('store-retry'),
+              style: FilledButton.styleFrom(backgroundColor: p.accent),
+              onPressed: _open,
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _saveErrorBar(MnotePalette p, StudyStore s) => Material(
+    key: const ValueKey('save-error-bar'),
+    color: const Color(0xFFF6DCD6),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 8, 6),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, size: 18, color: Color(0xFF9C2F1E)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              s.saveError.value!,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6E1F12)),
+            ),
+          ),
+          IconButton(
+            tooltip: '关闭',
+            iconSize: 18,
+            onPressed: () => s.saveError.value = null,
+            icon: const Icon(Icons.close, color: Color(0xFF6E1F12)),
+          ),
+        ],
+      ),
+    ),
+  );
 
   @override
   void initState() {
@@ -33,9 +106,7 @@ class _BookshelfPageState extends State<BookshelfPage> {
     if (widget.store != null) {
       store = widget.store;
     } else {
-      StudyStore.instance().then((s) {
-        if (mounted) setState(() => store = s);
-      });
+      _open();
     }
   }
 
@@ -46,14 +117,20 @@ class _BookshelfPageState extends State<BookshelfPage> {
         builder: (context) {
           final p = MnotePalette.of(context);
           final s = store;
+          if (s == null && openError != null) return _openFailed(p);
           if (s == null)
             return ColoredBox(
               color: p.board,
               child: const Center(child: CircularProgressIndicator()),
             );
           return ListenableBuilder(
-            listenable: s,
-            builder: (context, _) => _content(context, s, p),
+            listenable: Listenable.merge([s, s.saveError]),
+            builder: (context, _) => Column(
+              children: [
+                if (s.saveError.value != null) _saveErrorBar(p, s),
+                Expanded(child: _content(context, s, p)),
+              ],
+            ),
           );
         },
       ),
@@ -136,7 +213,27 @@ class _BookshelfPageState extends State<BookshelfPage> {
       hint: '例如：Agent 决策失败',
     );
     if (name == null) return;
-    final set = await s.createSet(name);
+    final StudySet set;
+    try {
+      set = await s.createSet(name);
+    } on StoreAccessException catch (e) {
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          key: const ValueKey('store-error'),
+          title: const Text('无法新建学习集'),
+          content: Text('${e.message}\n\n请确认 mNote 可以写入这个文件夹（权限、磁盘空间、安全软件）。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(

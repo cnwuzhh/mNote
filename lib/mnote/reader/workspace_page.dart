@@ -158,6 +158,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     _removeSearchListener = searcher.addListener(_onViewChanged);
     doc.lastOpened = DateTime.now();
     store.touch(set);
+    store.saveError.addListener(_onSaveError);
     aiConfigStore.load().then((c) {
       if (mounted) setState(() => aiConfig = c);
     });
@@ -199,6 +200,7 @@ class _WorkspacePageState extends State<WorkspacePage>
     _removeSearchListener?.call();
     searcher.dispose();
     _addedTimer?.cancel();
+    store.saveError.removeListener(_onSaveError);
     ink?.history.removeListener(_onViewChanged);
     if (_inkSave?.isActive ?? false) {
       _inkSave!.cancel();
@@ -1406,6 +1408,12 @@ class _WorkspacePageState extends State<WorkspacePage>
         ),
       ),
     ];
+  }
+
+  /// Saving failed (folder not writable, disk full, …): say so.
+  void _onSaveError() {
+    final e = store.saveError.value;
+    if (e != null && mounted) _toast(e);
   }
 
   void _toast(String msg) {

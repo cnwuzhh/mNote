@@ -26,7 +26,14 @@ class StudyStore extends ChangeNotifier {
 
   /// The app-wide store, created on first use. Concurrent callers get the
   /// same store (two stores over the same files would overwrite each other).
-  static Future<StudyStore> instance() => _instance ??= _create();
+  /// A failed open is not cached, so 「重试」 really tries again.
+  static Future<StudyStore> instance() => _instance ??= _create().then(
+    (s) => s,
+    onError: (Object e, StackTrace st) {
+      _instance = null;
+      Error.throwWithStackTrace(StoreAccessException.from(e, 'open'), st);
+    },
+  );
 
   static Future<StudyStore> _create() async {
     final base = await getApplicationSupportDirectory();
@@ -54,6 +61,10 @@ class StudyStore extends ChangeNotifier {
 
   final Directory rootDir;
   final List<StudySet> _sets = [];
+
+  /// The last save failure (shown to the user), cleared by the next
+  /// successful save. Null while saving works.
+  final saveError = ValueNotifier<String?>(null);
   final Map<String, Timer> _pendingSaves = {};
 
   /// Ids of deleted sets: later saves (an open workspace, a debounced save
@@ -172,7 +183,13 @@ class StudyStore extends ChangeNotifier {
       name: name.trim().isEmpty ? '未命名学习集' : name.trim(),
     );
     _sets.add(set);
-    await saveNow(set);
+    try {
+      await saveNow(set);
+    } catch (e) {
+      // Not saved: do not pretend it exists.
+      _sets.remove(set);
+      throw StoreAccessException.from(e, 'create');
+    }
     notifyListeners();
     return set;
   }
@@ -230,8 +247,10 @@ class StudyStore extends ChangeNotifier {
     _pendingSaves.remove(set.id)?.cancel();
     _pendingSaves[set.id] = Timer(delay, () {
       _pendingSaves.remove(set.id);
-      saveNow(set)
-          .catchError((Object e) => log.severe('Saving ${set.id} failed: $e'));
+      saveNow(set).catchError((Object e) {
+        log.severe('Saving ${set.id} failed: $e');
+        saveError.value = StoreAccessException.from(e, 'save').message;
+      });
     });
   }
 
@@ -248,6 +267,7 @@ class StudyStore extends ChangeNotifier {
       return;
     }
     await AtomicFile.write(_setFile(set.id), utf8.encode(set.encode()));
+    if (saveError.value != null) saveError.value = null;
   }
 
   /// Writes all pending changes and waits until every write is on disk
@@ -261,6 +281,7 @@ class StudyStore extends ChangeNotifier {
           await saveNow(s);
         } catch (e) {
           log.severe('Saving $id failed: $e');
+          saveError.value = StoreAccessException.from(e, 'save').message;
         }
       }
     }
@@ -310,4 +331,37 @@ class StudyStore extends ChangeNotifier {
     touch(set, delay: Duration.zero);
     return true;
   }
+}
+
+/// The data folder cannot be opened or written (permissions, disk full, …).
+/// [message] is meant for the user: what failed, where, and why.
+class StoreAccessException implements Exception {
+  new(this.message, {this.path});
+
+  final String message;
+  final String? path;
+
+  /// [what]: 'open' (data folder at startup), 'create' (new study set),
+  /// 'save' (saving changes).
+  factory from(Object e, String what) {
+    if (e is StoreAccessException) return e;
+    final action = switch (what) {
+      'open' => '无法打开 mNote 的数据文件夹',
+      'create' => '无法新建学习集',
+      _ => '保存失败',
+    };
+    if (e is FileSystemException) {
+      final reason = e.osError?.message.trim().isNotEmpty == true
+          ? e.osError!.message.trim()
+          : e.message;
+      return StoreAccessException(
+        '$action：$reason（${e.path ?? '未知位置'}）',
+        path: e.path,
+      );
+    }
+    return StoreAccessException('$action：$e');
+  }
+
+  @override
+  String toString() => message;
 }
