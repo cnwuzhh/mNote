@@ -65,6 +65,17 @@ class StudyStore extends ChangeNotifier {
   /// The last save failure (shown to the user), cleared by the next
   /// successful save. Null while saving works.
   final saveError = ValueNotifier<String?>(null);
+
+  // Saves are numbered: a failure is only reported if no later save has
+  // succeeded since (a late error must not bring the warning back).
+  var _saveSeq = 0;
+  var _lastOkSeq = 0;
+
+  void _reportSaveFailure(int seq, Object e) {
+    if (seq > _lastOkSeq)
+      saveError.value = StoreAccessException.from(e, 'save').message;
+  }
+
   final Map<String, Timer> _pendingSaves = {};
 
   /// Ids of deleted sets: later saves (an open workspace, a debounced save
@@ -184,9 +195,9 @@ class StudyStore extends ChangeNotifier {
     );
     _sets.add(set);
     try {
-      await saveNow(set);
+      await saveNow(set, report: false);
     } catch (e) {
-      // Not saved: do not pretend it exists.
+      // Not saved: do not pretend it exists (the caller explains why).
       _sets.remove(set);
       throw StoreAccessException.from(e, 'create');
     }
@@ -249,7 +260,6 @@ class StudyStore extends ChangeNotifier {
       _pendingSaves.remove(set.id);
       saveNow(set).catchError((Object e) {
         log.severe('Saving ${set.id} failed: $e');
-        saveError.value = StoreAccessException.from(e, 'save').message;
       });
     });
   }
@@ -257,7 +267,9 @@ class StudyStore extends ChangeNotifier {
   /// Writes [set] atomically. Saves of the same set run one after another
   /// (the latest content wins); deleted sets and sets from a newer format
   /// version are never written.
-  Future<void> saveNow(StudySet set) async {
+  /// [report]: put a failure in [saveError] (off when the caller tells the
+  /// user itself, e.g. creating a set).
+  Future<void> saveNow(StudySet set, {bool report = true}) async {
     _pendingSaves.remove(set.id)?.cancel();
     if (_deleted.contains(set.id)) return;
     if (set.formatVersion > StudySet.currentFormatVersion) {
@@ -266,8 +278,16 @@ class StudyStore extends ChangeNotifier {
       );
       return;
     }
-    await AtomicFile.write(_setFile(set.id), utf8.encode(set.encode()));
-    if (saveError.value != null) saveError.value = null;
+    final seq = ++_saveSeq;
+    try {
+      await AtomicFile.write(_setFile(set.id), utf8.encode(set.encode()));
+    } catch (e) {
+      if (report) _reportSaveFailure(seq, e);
+      rethrow;
+    }
+    if (seq > _lastOkSeq) _lastOkSeq = seq;
+    if (saveError.value != null && _lastOkSeq == _saveSeq)
+      saveError.value = null;
   }
 
   /// Writes all pending changes and waits until every write is on disk
@@ -281,7 +301,6 @@ class StudyStore extends ChangeNotifier {
           await saveNow(s);
         } catch (e) {
           log.severe('Saving $id failed: $e');
-          saveError.value = StoreAccessException.from(e, 'save').message;
         }
       }
     }

@@ -15,6 +15,13 @@ void main() {
     Process.runSync('chmod', ['-R', 'u+rwx', dir.path]);
     dir.deleteSync(recursive: true);
   });
+  // Saving is real disk IO: poll instead of a fixed delay (slow under load).
+  Future<void> until(bool Function() ok) async {
+    for (var i = 0; i < 100 && !ok(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
   void readOnly(String path) =>
       expect(Process.runSync('chmod', ['0555', path]).exitCode, 0);
 
@@ -46,11 +53,11 @@ void main() {
       readOnly(setDir);
       set.name = 'renamed';
       store.touch(set, delay: Duration.zero);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await until(() => store.saveError.value != null);
       expect(store.saveError.value, startsWith('保存失败：'));
       Process.runSync('chmod', ['u+rwx', setDir]);
       store.touch(set, delay: Duration.zero);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await until(() => store.saveError.value == null);
       expect(store.saveError.value, isNull);
     },
   );

@@ -261,7 +261,11 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('lasso-to-card')));
-    await settle(20);
+    // Rendering and saving the image is real work: wait for the card.
+    for (var i = 0; i < 60 && set.mapCards.isEmpty; i++) {
+      await settle(1);
+    }
+    await settle(4);
 
     final cards = set.mapCards.toList();
     expect(cards, hasLength(1));
