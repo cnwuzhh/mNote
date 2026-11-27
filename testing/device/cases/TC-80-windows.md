@@ -1,6 +1,8 @@
 # Windows 版（第一档：能装、能跑）
 
-适用：用鼠标的 Windows 10/11 笔记本或台式机（x64）。编译产物在 `~/projects/mNote/builds/mNote-Windows-<版本>-<提交>/`（由 GitHub Actions 编译，`scripts/mnote_windows_fetch.sh` 下载）。
+适用：用鼠标的 Windows 10/11 笔记本或台式机（x64）。**安装包位置（编译服务器 h3c-4s-03）**：`/home/johnson/mnote-builds/windows/LATEST/`（指向最新一版 `mNote-Windows-<版本>-<提交>/`），里面有 `*-installer.exe`、`*-portable.zip`、`SHA256SUMS`、`README.md` 和本用例 `TESTCASES.md`。把文件拷到 Windows 电脑上之前先核对 `SHA256SUMS`。
+结果写在同一目录下的 `results/RESULTS.md`（格式同平板，见 `/home/johnson/mnote-builds/LATEST/testcases/RESULTS_TEMPLATE.md`）。
+这些文件由 GitHub Actions 编译，`scripts/mnote_windows_fetch.sh` 下载并上传到上述位置；Windows 版**不在**平板编译目录 `LATEST/` 里。
 第一档只保证功能可用；鼠标操作、窗口大小、快捷键等电脑上的体验问题属于第二档，**发现了请记录，不算失败**（除非功能用不了）。
 
 ## TC-WIN-01 安装与启动　`冒烟`　P0

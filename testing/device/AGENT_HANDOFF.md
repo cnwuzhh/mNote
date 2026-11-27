@@ -39,3 +39,9 @@
 - 源代码和用例源文件在同一台服务器的 `/home/johnson/mNote`（git 仓库），一般不需要看。
 
 - **AI 配置含 API Key**：只在 `/home/johnson/mnote-secrets/ai_providers.json`。按 TC-AI-SETUP 推到平板、导入后立刻删除平板上的副本；不要把文件或 Key 复制进 results/、截图或日志，结果里只写 Key 的后 4 位。
+
+## Windows 版
+- 位置：`/home/johnson/mnote-builds/windows/LATEST/`（指向最新一版 `mNote-Windows-<版本>-<提交>/`）。内含安装程序 `*-installer.exe`、免安装版 `*-portable.zip`、`SHA256SUMS`、`README.md`、用例 `TESTCASES.md`（= `cases/TC-80-windows.md`）。
+- 在 Windows 电脑上执行 TC-WIN-*；拷贝前核对 `SHA256SUMS`。结果写在该目录的 `results/RESULTS.md`。
+- 未签名：首次运行会出现 SmartScreen 提示，选「更多信息」→「仍要运行」。
+- Windows 版和平板版是两条线：平板 `LATEST/` 里没有 Windows 文件，Windows 目录里也没有 APK。

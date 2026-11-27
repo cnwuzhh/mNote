@@ -41,5 +41,13 @@ cat > "$DEST/README.md" <<EOF
 - \`*-portable.zip\`: unzip anywhere and run \`mnote.exe\` (needs the Visual C++ runtime, usually already present).
 - The files are not code-signed: Windows SmartScreen shows "Windows protected your PC" — choose "More info" → "Run anyway".
 EOF
+cp "$(dirname "$0")/../testing/device/cases/TC-80-windows.md" "$DEST/TESTCASES.md" 2>/dev/null || true
 echo "downloaded to $DEST"
 ls -l "$DEST"
+
+# Publish next to the tablet builds on the build server, where the test agent
+# looks: /home/johnson/mnote-builds/windows/<name>/ and windows/LATEST.
+HOST=${MNOTE_BUILD_HOST:-h3c-4s-03}
+ssh "$HOST" 'mkdir -p ~/mnote-builds/windows'
+rsync -a "$DEST" "$HOST:mnote-builds/windows/"
+ssh "$HOST" "cd ~/mnote-builds/windows && ln -sfn '$NAME' LATEST && cd '$NAME' && sha256sum -c --quiet SHA256SUMS && echo published to \$HOST:~/mnote-builds/windows/$NAME '(windows/LATEST)'"
