@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "mNote"
-#define MyAppVersion "1.38.0"
+#define MyAppVersion "0.8.0"
 #define MyAppPublisher "cnwuzhh (based on Saber by Adil Hanney)"
 #define MyAppURL "https://github.com/cnwuzhh/mNote"
 #define MyAppExeName "mnote.exe"

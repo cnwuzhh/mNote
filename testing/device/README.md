@@ -32,7 +32,7 @@ PKG=io.github.cnwuzhh.mnote
 adb devices                                   # 确认设备在线
 adb uninstall $PKG || true                    # 每次从干净状态开始（除非用例要求保留数据）
 adb uninstall com.adilhanney.saber || true    # 旧的测试包（包名不同，是另一个 App）
-adb install -r "$APK"
+adb install -r -d "$APK"   # -d: 0.8.0 起版本号从 138000 变为 8000，允许覆盖安装（保留数据）
 adb push testcases/assets/arxiv-2610.18579v1.pdf /sdcard/Download/
 adb shell settings put system accelerometer_rotation 0   # 关自动旋转
 adb shell settings put system user_rotation 1            # 横屏（用例要求竖屏时改成 0）

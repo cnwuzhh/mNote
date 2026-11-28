@@ -1,0 +1,73 @@
+name: mNote Release
+
+# Push a tag like v0.8.0: builds the Windows installer + portable zip and
+# creates the GitHub release with docs/releases/<tag>.md as its notes.
+# The Android APK is attached by "mNote Android" when the release key is
+# configured (secrets MNOTE_KEYSTORE_BASE64 / MNOTE_STORE_PASSWORD /
+# MNOTE_KEY_PASSWORD / MNOTE_KEY_ALIAS).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Build Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: adil192/setup-flutter-submodule@v3
+        with:
+          flutter-path: submodules/flutter
+      - run: flutter config --no-cli-animations
+        shell: bash
+      - run: ./patches/pre/remove_permission_handler.sh
+        shell: bash
+      - run: flutter build windows --release
+        shell: bash
+      - name: Names
+        id: names
+        shell: bash
+        run: echo "base=mNote-Windows-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+      - name: Portable zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "installers/${{ steps.names.outputs.base }}-portable.zip"
+      - run: curl -L -o installers/vc_redist.x64.exe https://aka.ms/vs/17/release/vc_redist.x64.exe
+        shell: bash
+      - run: choco install -y innosetup
+      - run: ISCC.exe installers/mnote_inno_script.iss
+      - run: mv installers/mNoteInstaller.exe "installers/${{ steps.names.outputs.base }}-installer.exe"
+        shell: bash
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: |
+            installers/${{ steps.names.outputs.base }}-installer.exe
+            installers/${{ steps.names.outputs.base }}-portable.zip
+
+  release:
+    name: Create release
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          name: windows
+          path: dist
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS-windows.txt && cat SHA256SUMS-windows.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: mNote ${{ github.ref_name }}
+          body_path: docs/releases/${{ github.ref_name }}.md
+          prerelease: true
+          files: dist/*

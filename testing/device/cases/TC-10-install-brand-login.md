@@ -4,7 +4,7 @@
 **前置**：已卸载旧版。
 | # | 操作 | 期望 |
 |---|---|---|
-| 1 | `adb install -r <apk>` | 输出 `Success` |
+| 1 | `adb install -r -d <apk>`（`-d`：允许版本号降低，保留数据） | 输出 `Success` |
 | 2 | `adb shell dumpsys package io.github.cnwuzhh.mnote \| grep versionName` | 与 `manifest.json` 的 `versionName` 一致 |
 | 3 | 在桌面找到 App | 名字显示为「mNote」；图标是黄色纸片上斜放的花体「m」 |
 | 4 | `adb shell am start -n io.github.cnwuzhh.mnote/.MainActivity` | 5 秒内显示「学习集」页：大标题「学习集」、按钮「新建学习集」；导航栏（手机在底部，平板横屏在左侧）第一项是「学习集」且被选中 |
