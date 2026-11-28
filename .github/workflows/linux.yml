@@ -3,9 +3,9 @@ name: Build for Linux
 on:
   # Enable manual run
   workflow_dispatch:
+  # mNote: no tag trigger — version tags release mNote (mnote-release.yml),
+  # Saber's upstream builds must not upload Saber packages to them.
   push:
-    tags:
-      - "**"
     branches:
       - "**"
     paths:
