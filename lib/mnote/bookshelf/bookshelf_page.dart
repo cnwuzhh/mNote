@@ -486,7 +486,7 @@ class StudySetPage extends StatelessWidget {
                               ),
                               isThreeLine: d.sourceUrl != null,
                               // Long-press to rename (e.g. a title taken from a link).
-                              onLongPress: () => _renameDoc(context, d),
+                              onLongPress: () => _docMenu(context, d),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => openDoc(context, d),
                             ),
@@ -514,6 +514,111 @@ class StudySetPage extends StatelessWidget {
     if (u == null) return url;
     final path = u.path.length > 40 ? '${u.path.substring(0, 40)}…' : u.path;
     return '${u.host}$path';
+  }
+
+  Future<void> _docMenu(BuildContext context, StudyDoc d) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                d.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            ListTile(
+              key: const ValueKey('doc-rename'),
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('重命名'),
+              onTap: () => Navigator.pop(ctx, 'rename'),
+            ),
+            ListTile(
+              key: const ValueKey('doc-delete'),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Color(0xFFB03A2E),
+              ),
+              title: const Text(
+                '删除文档',
+                style: TextStyle(color: Color(0xFFB03A2E)),
+              ),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    if (choice == 'rename') {
+      await _renameDoc(context, d);
+    } else if (choice == 'delete') {
+      await _deleteDoc(context, d);
+    }
+  }
+
+  Future<void> _deleteDoc(BuildContext context, StudyDoc d) async {
+    final cards = set.cards
+        .where((c) => c.docId == d.id && !c.highlightOnly)
+        .length;
+    final highlights = set.cards
+        .where((c) => c.docId == d.id && c.highlightOnly)
+        .length;
+    final notes = set.aiNotes.where((n) => n.docId == d.id).length;
+    final hasInk = store.inkFile(set, d).existsSync();
+    final parts = [
+      if (cards > 0) '$cards 张卡片',
+      if (highlights > 0) '$highlights 处高亮',
+      if (hasInk) '手写笔迹',
+      if (notes > 0) '$notes 个翻译 / 解释',
+    ];
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('doc-delete-confirm'),
+        title: Text('删除「${d.title}」？'),
+        content: Text(
+          parts.isEmpty
+              ? '会删除这份 PDF。'
+              : '会删除这份 PDF，以及从它摘录的${parts.join('、')}。其他文档的卡片保留（原来挂在被删卡片下的会上移一级）。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            key: const ValueKey('doc-delete-ok'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB03A2E),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    const grace = Duration(seconds: 8);
+    final undo = store.deleteDoc(set, d, grace: grace);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('已删除「${d.title}」'),
+          duration: grace - const Duration(milliseconds: 500),
+          persist: false,
+          action: SnackBarAction(
+            key: const ValueKey('doc-undo'),
+            label: '撤销',
+            onPressed: undo,
+          ),
+        ),
+      );
   }
 
   Future<void> _renameDoc(BuildContext context, StudyDoc d) async {

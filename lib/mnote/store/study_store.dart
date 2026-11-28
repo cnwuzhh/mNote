@@ -399,6 +399,7 @@ class StudyStore extends ChangeNotifier {
   /// Writes all pending changes and waits until every write is on disk
   /// (called when the app leaves the foreground and when a document closes).
   Future<void> flush() async {
+    await _finishPendingDeletes();
     final ids = _pendingSaves.keys.toList();
     for (final id in ids) {
       final s = byId(id);
@@ -425,6 +426,102 @@ class StudyStore extends ChangeNotifier {
 
   /// Removes [card]; its children move up to [card]'s parent.
   /// Returns a function that undoes the deletion.
+  /// File deletions waiting for the undo window to pass (see [deleteDoc]).
+  final _pendingDeletes = <Timer, Future<void> Function()>{};
+
+  /// Removes [doc] from [set] together with the cards excerpted from it and
+  /// its translate/explain notes. Sub-cards from other documents move up to
+  /// the nearest remaining ancestor. The PDF, its handwriting and the
+  /// removed cards' screenshots are deleted after [grace] (or when the app
+  /// leaves the foreground); until then the returned undo restores all.
+  VoidCallback deleteDoc(
+    StudySet set,
+    StudyDoc doc, {
+    Duration grace = const Duration(seconds: 8),
+  }) {
+    final docIndex = set.docs.indexOf(doc);
+    final removed = [
+      for (final c in set.cards)
+        if (c.docId == doc.id) c,
+    ];
+    final removedIds = {for (final c in removed) c.id};
+    final cardIndex = {for (final c in removed) c.id: set.cards.indexOf(c)};
+    final notes = [
+      for (final n in set.aiNotes)
+        if (n.docId == doc.id) n,
+    ];
+    final noteIndex = {for (final n in notes) n.id: set.aiNotes.indexOf(n)};
+
+    // Surviving sub-cards of removed cards: up to the nearest kept ancestor.
+    final moved = <MCard, String?>{};
+    for (final c in set.cards) {
+      if (removedIds.contains(c.id) || !removedIds.contains(c.parentId))
+        continue;
+      moved[c] = c.parentId;
+      String? up = c.parentId;
+      while (up != null && removedIds.contains(up)) {
+        up = set.cardById(up)?.parentId;
+      }
+      c.parentId = up;
+    }
+    set.cards.removeWhere((c) => removedIds.contains(c.id));
+    set.aiNotes.removeWhere((n) => n.docId == doc.id);
+    set.docs.remove(doc);
+    touch(set, delay: Duration.zero);
+
+    final files = [
+      docFile(set, doc),
+      inkFile(set, doc),
+      for (final c in removed)
+        if (c.image != null) imageFile(set, c.image!),
+    ];
+    Future<void> deleteFiles() async {
+      for (final f in files) {
+        if (!f.existsSync()) continue;
+        try {
+          await f.delete();
+          _sync?.deleted(f.path);
+        } catch (e) {
+          log.warning('Could not delete ${f.path}: $e');
+        }
+      }
+    }
+
+    late final Timer timer;
+    timer = Timer(grace, () {
+      final run = _pendingDeletes.remove(timer);
+      run?.call();
+    });
+    _pendingDeletes[timer] = deleteFiles;
+
+    return () {
+      if (_pendingDeletes.remove(timer) == null) return; // too late
+      timer.cancel();
+      set.docs.insert(docIndex.clamp(0, set.docs.length), doc);
+      for (final c in removed) {
+        set.cards.insert(cardIndex[c.id]!.clamp(0, set.cards.length), c);
+      }
+      for (final n in notes) {
+        set.aiNotes.insert(noteIndex[n.id]!.clamp(0, set.aiNotes.length), n);
+      }
+      moved.forEach((c, parent) => c.parentId = parent);
+      touch(set, delay: Duration.zero);
+    };
+  }
+
+  /// Runs deletions still waiting for their undo window (app leaving the
+  /// foreground: it may not come back).
+  Future<void> _finishPendingDeletes() async {
+    final runs = _pendingDeletes.values.toList();
+    for (final t in _pendingDeletes.keys) {
+      t.cancel();
+    }
+    _pendingDeletes.clear();
+    for (final r in runs) {
+      await r();
+    }
+  }
+
   VoidCallback deleteCard(StudySet set, MCard card) {
     final index = set.cards.indexOf(card);
     final movedChildren = set.cards

@@ -91,6 +91,7 @@
 | TC-NC-05 | 换设备 / 重装后恢复学习集 | P0 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
 | TC-NC-06 | 删除学习集也从 Nextcloud 删除 | P1 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
 | TC-NC-07 | Saber 笔记列表不出现隐藏目录 | P2 |  | cases/TC-90-sync.md | Nextcloud 同步学习集 |
+| TC-DOC-01 | 删除导入的 PDF | P1 |  | cases/TC-20-studyset-reader-excerpt.md | 删除文档 |
 
 TC-WIN-* 在 Windows 电脑上执行，安装包在 `/home/johnson/mnote-builds/windows/LATEST/`（不在平板编译目录里，见 cases/TC-80-windows.md）。TC-40 的用例需要先按其中的 TC-MAP-SETUP 准备 5 张卡片。TC-AI-* 需要先做 TC-70 里的 TC-AI-SETUP（导入私密 AI 配置，导入后立即删除平板上的副本）。
 

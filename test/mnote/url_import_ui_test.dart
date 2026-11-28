@@ -135,6 +135,8 @@ void main() {
     // Long-press to rename.
     await tester.longPress(find.byKey(ValueKey('doc-${doc.id}')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('doc-rename')));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('prompt-field')),
       'Reading Right',
